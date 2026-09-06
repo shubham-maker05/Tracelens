@@ -7,6 +7,9 @@ import com.unity3d.ads.UnityAds
 import com.unity3d.ads.UnityAdsLoadOptions
 import com.unity3d.ads.UnityAdsShowOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /**
@@ -24,8 +27,29 @@ import kotlin.coroutines.resume
  */
 class UnityAdsManager(private val activity: Activity) : RewardedAdManager {
 
+    suspend fun showInterstitial(): Boolean = suspendCancellableCoroutine { continuation ->
+        UnityAds.load(UnityAdsConfig.INTERSTITIAL_PLACEMENT_ID, object : IUnityAdsLoadListener {
+            override fun onUnityAdsAdLoaded(placementId: String) {
+                UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+                    override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String?) {
+                        if (continuation.isActive) continuation.resume(false)
+                    }
+                    override fun onUnityAdsShowStart(placementId: String) { }
+                    override fun onUnityAdsShowClick(placementId: String) { }
+                    override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+                        if (continuation.isActive) continuation.resume(state == UnityAds.UnityAdsShowCompletionState.COMPLETED)
+                    }
+                })
+            }
+            override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String?) {
+                if (continuation.isActive) continuation.resume(false)
+            }
+        })
+    }
+
     override suspend fun showRewardedAd(): Boolean = suspendCancellableCoroutine { continuation ->
-        UnityAds.load(UnityAdsConfig.REWARDED_PLACEMENT_ID, object : IUnityAdsLoadListener {
+        val load = {
+            UnityAds.load(UnityAdsConfig.REWARDED_PLACEMENT_ID, object : IUnityAdsLoadListener {
             override fun onUnityAdsAdLoaded(placementId: String) {
                 UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
                     override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String?) {
@@ -44,6 +68,15 @@ class UnityAdsManager(private val activity: Activity) : RewardedAdManager {
             override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String?) {
                 if (continuation.isActive) continuation.resume(false)
             }
-        })
+            })
+        }
+        kotlinx.coroutines.CoroutineScope(continuation.context).launch {
+            val initialized = withTimeoutOrNull(10_000) {
+                while (!UnityAds.isInitialized) delay(100)
+                true
+            } == true
+            if (initialized && continuation.isActive) load()
+            else if (continuation.isActive) continuation.resume(false)
+        }
     }
 }

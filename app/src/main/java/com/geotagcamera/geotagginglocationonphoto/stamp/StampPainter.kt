@@ -43,11 +43,7 @@ import com.geotagcamera.geotagginglocationonphoto.ui.theme.StampAnchorStyle
  *
  * No RenderEffect/backdrop blur here (that needs API 31+): a flat
  * semi-transparent scrim is used everywhere, matching the design system's
- * own documented low-end/API-26 fallback path (section 10, "API 26
- * fallbacks" — "a slightly darker flat scrim below it, tuned to the same
- * measured contrast"). Address/date lines are measured single-line for now
- * (no wrap); very long addresses may overflow the card edge until this
- * gets a real device pass and a wrap pass is added.
+ * own documented low-end/API-26 fallback path.
  */
 object StampPainter {
     private val CardScrim = Color(0xB2141619) // ~rgba(20,22,25,.70), one shade lighter than chrome/base for legibility
@@ -57,6 +53,12 @@ object StampPainter {
     private val TextMuted = Color(0x8CFFFFFF) // rgba(255,255,255,.55)
     private val ChipBackground = Color(0x1CFFFFFF) // rgba(255,255,255,.11)
     private val BrandDotColor = Color(0xFF56CB98) // accent/verified
+    private data class CardLayouts(
+        val place: TextLayoutResult?,
+        val address: TextLayoutResult?,
+        val coords: TextLayoutResult?,
+        val date: TextLayoutResult?
+    )
 
     private val AddressStyle = TextStyle(fontFamily = Poppins, fontWeight = FontWeight.Normal, fontSize = 12.5.sp, color = TextSecondary)
     private val DateTimeStyle = TextStyle(fontFamily = Poppins, fontWeight = FontWeight.Normal, fontSize = 12.5.sp, color = TextSecondary)
@@ -95,17 +97,10 @@ object StampPainter {
         val px3 = px(3f) * boxScale; val px1 = px(1f)
         val margin = size.minDimension * 0.035f
         val maxCardWidth = size.width * 0.92f
-        val naturalTextWidth = listOfNotNull(
-            spec.placeName?.let { tm.measure(it, placeStyle, maxLines = 1).size.width.toFloat() },
-            spec.addressLine?.let { tm.measure(it, addressStyle, maxLines = 2).size.width.toFloat() },
-            spec.coordinatesText?.let { tm.measure(it, coordsStyle, maxLines = 1).size.width.toFloat() },
-            listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ").takeIf { it.isNotBlank() }
-                ?.let { tm.measure(it, dateTimeStyle, maxLines = 2).size.width.toFloat() }
-        ).maxOrNull() ?: 0f
-        val desiredWidth = naturalTextWidth + size.width * 0.12f + if (spec.mapTile != null) size.width * 0.29f else 0f
-        val cardWidth = (maxOf(size.width * 0.62f, desiredWidth) * boxScale)
-            .coerceAtMost(maxCardWidth)
-            .coerceAtMost(size.width - margin * 2)
+        // Long values wrap inside a stable card instead of making it grow over
+        // most of the photo.
+        val baseWidth = if (spec.mapTile != null) size.width * 0.88f else size.width * 0.74f
+        val cardWidth = (baseWidth * boxScale).coerceIn(size.width * 0.56f, maxCardWidth)
         val pad = cardWidth * 0.045f
         val gap = cardWidth * 0.03f
 
@@ -121,7 +116,7 @@ object StampPainter {
             tm.measure(
                 text = text,
                 style = style,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 maxLines = maxLines,
                 constraints = Constraints(maxWidth = maxW.roundToInt().coerceAtLeast(1))
             )
@@ -129,22 +124,35 @@ object StampPainter {
 
         val countryLayout = spec.countryCode?.let { tm.measure(it, CountryChipStyle, maxLines = 1) }
         val countryReserve = countryLayout?.let { it.size.width + px(11f) } ?: 0f
-        val placeLayout = spec.placeName?.let { measure(it, placeStyle, 1, (textColWidth - countryReserve).coerceAtLeast(1f)) }
-        val addressLayout = spec.addressLine?.let { measure(it, addressStyle, 2, textColWidth) }
-        val coordsLayout = spec.coordinatesText?.let { measure(it, coordsStyle, 1, textColWidth) }
         val dateTimeText = listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ")
-        val dateTimeLayout = dateTimeText.takeIf { it.isNotBlank() }?.let { measure(it, dateTimeStyle, 2, textColWidth) }
+        fun layoutsAt(scale: Float): CardLayouts {
+            val place = spec.placeName?.let { measure(it, placeStyle.copy(fontSize = placeStyle.fontSize * scale), 6, (textColWidth - countryReserve).coerceAtLeast(1f)) }
+            val address = spec.addressLine?.let { measure(it, addressStyle.copy(fontSize = addressStyle.fontSize * scale), 8, textColWidth) }
+            val coords = spec.coordinatesText?.let { measure(it, coordsStyle.copy(fontSize = coordsStyle.fontSize * scale), 3, textColWidth) }
+            val date = dateTimeText.takeIf { it.isNotBlank() }?.let { measure(it, dateTimeStyle.copy(fontSize = dateTimeStyle.fontSize * scale), 4, textColWidth) }
+            return CardLayouts(place, address, coords, date)
+        }
+        val maxCardHeight = size.height * 0.34f
+        val chipRowHeight = if (spec.chips.isNotEmpty()) with(chipStyle.fontSize) { toPx() } * 2.6f else 0f
+        val footerHeight = if (spec.hasFooterRow) with(footerLabelStyle.fontSize) { toPx() } * 2.4f else 0f
+        var layoutScale = 1f
+        var layouts = layoutsAt(layoutScale)
+        while (layoutScale > 0.7f && cardContentHeight(layouts, px3, tileSize, chipRowHeight, footerHeight, spec) > maxCardHeight - pad * 2) {
+            layoutScale -= 0.05f
+            layouts = layoutsAt(layoutScale)
+        }
+        val placeLayout = layouts.place
+        val addressLayout = layouts.address
+        val coordsLayout = layouts.coords
+        val dateTimeLayout = layouts.date
 
         val textBlockHeight = stackedHeight(listOfNotNull(placeLayout, addressLayout, coordsLayout, dateTimeLayout), px3)
         val rowHeight = maxOf(tileSize, textBlockHeight)
 
-        val chipRowHeight = if (spec.chips.isNotEmpty()) with(chipStyle.fontSize) { toPx() } * 2.6f else 0f
-        val footerHeight = if (spec.hasFooterRow) with(footerLabelStyle.fontSize) { toPx() } * 2.4f else 0f
-
-        val cardHeight = pad * 2 +
+        val cardHeight = (pad * 2 +
             rowHeight +
             (if (spec.chips.isNotEmpty()) gap + chipRowHeight else 0f) +
-            (if (spec.hasFooterRow) gap + footerHeight else 0f)
+            (if (spec.hasFooterRow) gap + footerHeight else 0f)).coerceAtMost(maxCardHeight)
 
         val cardOrigin = anchorOrigin(spec, Size(cardWidth, cardHeight), margin)
         val corner = CornerRadius(cardWidth * 0.045f)
@@ -152,20 +160,21 @@ object StampPainter {
         drawRoundRect(color = CardScrim, topLeft = cardOrigin, size = Size(cardWidth, cardHeight), cornerRadius = corner)
         drawRoundRect(color = CardBorder, topLeft = cardOrigin, size = Size(cardWidth, cardHeight), cornerRadius = corner, style = Stroke(width = px1))
 
-        var x = cardOrigin.x + pad
-        val rowTop = cardOrigin.y + pad
+        clipRoundRect(cardOrigin, Size(cardWidth, cardHeight), corner) {
+            var x = cardOrigin.x + pad
+            val rowTop = cardOrigin.y + pad
 
-        if (hasTile) {
+            if (hasTile) {
             val tile = spec.mapTile!!
             val tileCorner = CornerRadius(tileSize * 0.12f)
             clipRoundRect(Offset(x, rowTop), Size(tileSize, tileSize), tileCorner) {
                 drawImage(tile, dstOffset = IntOffset(x.toInt(), rowTop.toInt()), dstSize = IntSize(tileSize.toInt(), tileSize.toInt()))
             }
             x += tileSize + gap
-        }
+            }
 
-        var textY = rowTop
-        placeLayout?.let { layout ->
+            var textY = rowTop
+            placeLayout?.let { layout ->
             drawText(layout, topLeft = Offset(x, textY))
             countryLayout?.let { cl ->
                 val chipPad = px(4f)
@@ -175,14 +184,14 @@ object StampPainter {
                 drawText(cl, topLeft = Offset(chipX + chipPad, textY + px1 + chipPad * 0.6f))
             }
             textY += layout.size.height + px3
-        }
-        addressLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)); textY += layout.size.height + px3 }
-        coordsLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)); textY += layout.size.height + px3 }
-        dateTimeLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)) }
+            }
+            addressLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)); textY += layout.size.height + px3 }
+            coordsLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)); textY += layout.size.height + px3 }
+            dateTimeLayout?.let { layout -> drawText(layout, topLeft = Offset(x, textY)) }
 
-        var y = rowTop + rowHeight
+            var y = rowTop + rowHeight
 
-        if (spec.chips.isNotEmpty()) {
+            if (spec.chips.isNotEmpty()) {
             y += gap
             var chipX = cardOrigin.x + pad
             spec.chips.forEach { chip ->
@@ -194,9 +203,9 @@ object StampPainter {
                 chipX += chipSize.width + px(5f)
             }
             y += chipRowHeight
-        }
+            }
 
-        if (spec.hasFooterRow) {
+            if (spec.hasFooterRow) {
             y += gap
             drawLine(CardBorder, Offset(cardOrigin.x + pad, y), Offset(cardOrigin.x + cardWidth - pad, y), strokeWidth = px1)
             val centerY = y + footerHeight * 0.5f + gap * 0.2f
@@ -216,8 +225,8 @@ object StampPainter {
             // right-to-left so nothing collides, each vertically centred.
             var rightX = cardOrigin.x + cardWidth - pad
             if (spec.showBrandMark) {
-                val markSize = px(11f)
-                val label = tm.measure("TRACELENS", BrandTextStyle.copy(fontFamily = fontFamily), maxLines = 1)
+                val markSize = px(8f)
+                val label = tm.measure("TRACELENS", BrandTextStyle.copy(fontFamily = fontFamily, fontSize = 6.5.sp), maxLines = 1)
                 val startX = rightX - (markSize + px(4f) + label.size.width)
                 drawRoundRect(primary.copy(alpha = 0.55f), Offset(startX, centerY - markSize / 2f), Size(markSize, markSize), CornerRadius(markSize * 0.33f), style = Stroke(width = px(1.2f)))
                 drawCircle(BrandDotColor.copy(alpha = 0.85f), markSize * 0.15f, Offset(startX + markSize / 2f, centerY))
@@ -235,8 +244,9 @@ object StampPainter {
             // Org label fills the gap between the logo and the right-hand block.
             spec.orgLabel?.let { label ->
                 val avail = (rightX - leftX).coerceAtLeast(1f)
-                val layout = tm.measure(label, footerLabelStyle, overflow = TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = avail.roundToInt().coerceAtLeast(1)))
+                val layout = fitSingleLine(tm, label, footerLabelStyle, avail)
                 drawText(layout, topLeft = Offset(leftX, centerY - layout.size.height / 2f))
+            }
             }
         }
     }
@@ -248,15 +258,16 @@ object StampPainter {
         val pad = size.width * 0.045f
         val leftMax = size.width * 0.52f
         val rightMax = size.width * 0.44f
-        val placeLayout = spec.placeName?.let { tm.measure(it, StampAnchorStyle.copy(color = TextPrimary), overflow = TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = leftMax.roundToInt().coerceAtLeast(1))) }
-        val addressLayout = spec.addressLine?.let { tm.measure(it, AddressStyle, overflow = TextOverflow.Ellipsis, maxLines = 2, constraints = Constraints(maxWidth = leftMax.roundToInt().coerceAtLeast(1))) }
-        val coordsLayout = spec.coordinatesText?.let { tm.measure(it, MonoDataStyle.copy(color = TextPrimary), overflow = TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = rightMax.roundToInt().coerceAtLeast(1))) }
+        val placeLayout = spec.placeName?.let { tm.measure(it, StampAnchorStyle.copy(color = TextPrimary), overflow = TextOverflow.Clip, maxLines = 6, constraints = Constraints(maxWidth = leftMax.roundToInt().coerceAtLeast(1))) }
+        val addressLayout = spec.addressLine?.let { tm.measure(it, AddressStyle, overflow = TextOverflow.Clip, maxLines = 8, constraints = Constraints(maxWidth = leftMax.roundToInt().coerceAtLeast(1))) }
+        val projectLayout = spec.orgLabel?.takeIf { it.isNotBlank() }?.let { fitSingleLine(tm, it, FooterLabelStyle, leftMax) }
+        val coordsLayout = spec.coordinatesText?.let { tm.measure(it, MonoDataStyle.copy(color = TextPrimary), overflow = TextOverflow.Clip, maxLines = 3, constraints = Constraints(maxWidth = rightMax.roundToInt().coerceAtLeast(1))) }
         val dateTimeText = listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ")
-        val dateTimeLayout = dateTimeText.takeIf { it.isNotBlank() }?.let { tm.measure(it, DateTimeStyle, overflow = TextOverflow.Ellipsis, maxLines = 2, constraints = Constraints(maxWidth = rightMax.roundToInt().coerceAtLeast(1))) }
+        val dateTimeLayout = dateTimeText.takeIf { it.isNotBlank() }?.let { tm.measure(it, DateTimeStyle, overflow = TextOverflow.Clip, maxLines = 4, constraints = Constraints(maxWidth = rightMax.roundToInt().coerceAtLeast(1))) }
 
-        val leftHeight = stackedHeight(listOfNotNull(placeLayout, addressLayout), px3)
+        val leftHeight = stackedHeight(listOfNotNull(placeLayout, addressLayout, projectLayout), px3)
         val rightHeight = stackedHeight(listOfNotNull(coordsLayout, dateTimeLayout), px3)
-        val barHeight = maxOf(leftHeight, rightHeight, 1f) + pad * 1.6f
+        val barHeight = (maxOf(leftHeight, rightHeight, 1f) + pad * 1.6f).coerceAtMost(size.height * 0.34f)
         if (placeLayout == null && addressLayout == null && coordsLayout == null && dateTimeLayout == null) return@with
 
         drawRect(
@@ -267,7 +278,8 @@ object StampPainter {
 
         var leftY = size.height - barHeight + pad * 0.8f
         placeLayout?.let { drawText(it, topLeft = Offset(pad, leftY)); leftY += it.size.height + px3 }
-        addressLayout?.let { drawText(it, topLeft = Offset(pad, leftY)) }
+        addressLayout?.let { drawText(it, topLeft = Offset(pad, leftY)); leftY += it.size.height + px3 }
+        projectLayout?.let { drawText(it, topLeft = Offset(pad, leftY)) }
 
         var rightY = size.height - barHeight + pad * 0.8f
         coordsLayout?.let { drawText(it, topLeft = Offset(size.width - pad - it.size.width, rightY)); rightY += it.size.height + px3 }
@@ -280,24 +292,52 @@ object StampPainter {
         val margin = size.minDimension * 0.035f
         val pad = px(10f)
         val px2 = px(2f)
-        val minimalMax = size.width * 0.7f
-        val coordsLayout = spec.coordinatesText?.let { tm.measure(it, MonoDataStyle.copy(color = TextPrimary), overflow = TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = minimalMax.roundToInt().coerceAtLeast(1))) }
+        val minimalMax = size.width * 0.82f
+        val placeLayout = spec.placeName?.let { tm.measure(it, StampAnchorStyle.copy(color = TextPrimary), overflow = TextOverflow.Clip, maxLines = 5, constraints = Constraints(maxWidth = minimalMax.roundToInt().coerceAtLeast(1))) }
+        val addressLayout = spec.addressLine?.let { tm.measure(it, AddressStyle, overflow = TextOverflow.Clip, maxLines = 7, constraints = Constraints(maxWidth = minimalMax.roundToInt().coerceAtLeast(1))) }
+        val projectLayout = spec.orgLabel?.takeIf { it.isNotBlank() }?.let { fitSingleLine(tm, it, FooterLabelStyle, minimalMax) }
+        val coordsLayout = spec.coordinatesText?.let { tm.measure(it, MonoDataStyle.copy(color = TextPrimary), overflow = TextOverflow.Clip, maxLines = 3, constraints = Constraints(maxWidth = minimalMax.roundToInt().coerceAtLeast(1))) }
         val dateTimeText = listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ")
         val dateTimeLayout = dateTimeText.takeIf { it.isNotBlank() }?.let { tm.measure(it, DateTimeStyle, overflow = TextOverflow.Ellipsis, maxLines = 2, constraints = Constraints(maxWidth = minimalMax.roundToInt().coerceAtLeast(1))) }
-        if (coordsLayout == null && dateTimeLayout == null) return@with
+        if (placeLayout == null && addressLayout == null && projectLayout == null && coordsLayout == null && dateTimeLayout == null) return@with
 
-        val width = maxOf(coordsLayout?.size?.width ?: 0, dateTimeLayout?.size?.width ?: 0) + pad * 2
-        val height = stackedHeight(listOfNotNull(coordsLayout, dateTimeLayout), px2) + pad * 1.4f
+        val width = maxOf(placeLayout?.size?.width ?: 0, addressLayout?.size?.width ?: 0, projectLayout?.size?.width ?: 0, coordsLayout?.size?.width ?: 0, dateTimeLayout?.size?.width ?: 0) + pad * 2
+        val height = (stackedHeight(listOfNotNull(placeLayout, addressLayout, projectLayout, coordsLayout, dateTimeLayout), px2) + pad * 1.4f).coerceAtMost(size.height * 0.34f)
 
         val origin = anchorOrigin(spec, Size(width, height), margin)
         drawRoundRect(CardScrim, origin, Size(width, height), CornerRadius(px(9f)))
 
         var y = origin.y + pad * 0.7f
+        placeLayout?.let { drawText(it, topLeft = Offset(origin.x + pad, y)); y += it.size.height + px2 }
+        addressLayout?.let { drawText(it, topLeft = Offset(origin.x + pad, y)); y += it.size.height + px2 }
+        projectLayout?.let { drawText(it, topLeft = Offset(origin.x + pad, y)); y += it.size.height + px2 }
         coordsLayout?.let { drawText(it, topLeft = Offset(origin.x + pad, y)); y += it.size.height + px2 }
         dateTimeLayout?.let { drawText(it, topLeft = Offset(origin.x + pad, y)) }
     }
 
     // ---- Shared helpers ----
+
+    private fun fitSingleLine(tm: TextMeasurer, text: String, style: TextStyle, maxWidth: Float): TextLayoutResult {
+        var fontSize = style.fontSize
+        var layout = tm.measure(
+            text = text,
+            style = style,
+            overflow = TextOverflow.Clip,
+            maxLines = 1,
+            constraints = Constraints(maxWidth = maxWidth.roundToInt().coerceAtLeast(1))
+        )
+        while (layout.hasVisualOverflow && fontSize.value > 6f) {
+            fontSize = (fontSize.value - 0.5f).sp
+            layout = tm.measure(
+                text = text,
+                style = style.copy(fontSize = fontSize),
+                overflow = TextOverflow.Clip,
+                maxLines = 1,
+                constraints = Constraints(maxWidth = maxWidth.roundToInt().coerceAtLeast(1))
+            )
+        }
+        return layout
+    }
 
     /** Nine-anchor placement: same grid the viewfinder drag and the Settings position picker use. */
     private fun DrawScope.anchorOrigin(spec: StampSpec, contentSize: Size, margin: Float): Offset {
@@ -346,4 +386,18 @@ object StampPainter {
     /** Sum of each layout's height plus one [gap] between consecutive items, never after the last. */
     private fun stackedHeight(layouts: List<TextLayoutResult>, gap: Float): Float =
         if (layouts.isEmpty()) 0f else layouts.sumOf { it.size.height } + gap * (layouts.size - 1)
+
+    private fun cardContentHeight(
+        layouts: CardLayouts,
+        gap: Float,
+        tileSize: Float,
+        chipHeight: Float,
+        footerHeight: Float,
+        spec: StampSpec
+    ): Float {
+        val textHeight = stackedHeight(listOfNotNull(layouts.place, layouts.address, layouts.coords, layouts.date), gap)
+        return maxOf(tileSize, textHeight) +
+            (if (spec.chips.isNotEmpty()) gap + chipHeight else 0f) +
+            (if (spec.hasFooterRow) gap + footerHeight else 0f)
+    }
 }

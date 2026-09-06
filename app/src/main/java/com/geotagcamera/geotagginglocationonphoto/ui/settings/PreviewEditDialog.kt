@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
@@ -38,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import com.geotagcamera.geotagginglocationonphoto.ads.RewardedAdManager
 import com.geotagcamera.geotagginglocationonphoto.ads.RewardedUnlockDialog
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampFields
@@ -95,7 +98,10 @@ fun PreviewEditDialog(
                     value = projectName,
                     onValueChange = { projectName = it },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done)
                 )
 
                 Spacer(Modifier.height(16.dp))

@@ -34,6 +34,7 @@ fun RewardedUnlockDialog(
     onUnlocked: () -> Unit
 ) {
     var isPlaying by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     AlertDialog(
@@ -46,6 +47,9 @@ fun RewardedUnlockDialog(
                     Text("Please wait for the ad to finish to unlock date, time, day & location editing.")
                 } else {
                     Text("Watch a short ad to unlock editing the date, time, day and location on this stamp.")
+                    errorMessage?.let {
+                        Text(it, modifier = Modifier.padding(top = 8.dp), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         },
@@ -53,10 +57,12 @@ fun RewardedUnlockDialog(
             if (!isPlaying) {
                 Button(onClick = {
                     isPlaying = true
+                    errorMessage = null
                     scope.launch {
                         val rewarded = adManager.showRewardedAd()
                         isPlaying = false
-                        if (rewarded) onUnlocked() else onDismiss()
+                        if (rewarded) onUnlocked()
+                        else errorMessage = "Ad is unavailable right now. Please try again."
                     }
                 }) { Text("Watch ad") }
             }

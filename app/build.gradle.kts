@@ -28,8 +28,8 @@ android {
         applicationId = "com.geotagcamera.geotagginglocationonphoto"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 7
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
