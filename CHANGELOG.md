@@ -11,7 +11,7 @@ A full UI rebuild against a new design system, plus portable verification.
 ### Added
 - Live WYSIWYG viewfinder: the stamp overlay is drawn by the exact same code that burns into the saved photo, so what you frame is what you get. Long-press and drag the stamp to snap it across nine anchor positions.
 - Camera controls: pinch and rail zoom, tap-to-focus, flash auto/on/off, front/back switch, aspect ratio 4:3 / 16:9 / 1:1 (a true center crop), and a rule-of-thirds grid.
-- Portable photo verification: capture now embeds the hash, signature and public key in EXIF (mirrored in XMP), so any device with the app can verify any photo, offline, even one it never took. New "Verify a photo" screen and an Android share target ("Share → Verify with GeoTag Camera").
+- Portable photo verification: capture now embeds the hash, signature and public key in EXIF (mirrored in XMP), so any device with the app can verify any photo, offline, even one it never took. New "Verify a photo" screen and an Android share target ("Share → Verify with TraceLens").
 - Post-capture review screen with Share as the primary action, an address-derived filename, and a SIGNED · SHA-256 chip.
 - Optional OpenStreetMap map thumbnail (via Stadia Maps) and current-weather chip (via Open-Meteo). Both are off by default, on demand, cached, and never block a capture.
 - Redesigned stamp: Card / Bar / Minimal templates, country chip, Plus Code, GMT offset, altitude / accuracy / bearing chips, org label and logo.
@@ -41,7 +41,7 @@ A full UI rebuild against a new design system, plus portable verification.
 - Tamper-evident photo signing: SHA-256 hash signed with an Android Keystore key generated on-device
 - Project website with feature showcase, FAQ and SEO/AEO metadata, deployed via GitHub Pages
 - Capture screen: CameraX preview, runtime permission gate, shutter-to-saved-row pipeline (fresh GPS fix, reverse geocode, stamp render, EXIF write, keystore sign)
-- Captures publish to the device's real Photos/Gallery app via MediaStore (Pictures/GeoTagCamera) instead of an app-private folder
+- Captures publish to the device's real Photos/Gallery app via MediaStore (Pictures/TraceLens) instead of an app-private folder
 - Gallery screen: grid of captures with a detail dialog for date, coordinates, address and tamper-check verification
 - Settings screen: per-field stamp toggles and organization label, backed by DataStore
 - Bottom-nav shell wiring capture, gallery and settings

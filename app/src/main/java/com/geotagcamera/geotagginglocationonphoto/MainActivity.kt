@@ -11,9 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.geotagcamera.geotagginglocationonphoto.ui.nav.GeoTagCameraApp
+import com.geotagcamera.geotagginglocationonphoto.ui.nav.TraceLensApp
 import com.geotagcamera.geotagginglocationonphoto.ui.theme.AppThemeMode
-import com.geotagcamera.geotagginglocationonphoto.ui.theme.GeoTagCameraTheme
+import com.geotagcamera.geotagginglocationonphoto.ui.theme.TraceLensTheme
 import com.geotagcamera.geotagginglocationonphoto.ui.theme.ThemePreferences
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -36,8 +36,8 @@ class MainActivity : ComponentActivity() {
                 AppThemeMode.DARK -> true
                 AppThemeMode.LIGHT -> false
             }
-            GeoTagCameraTheme(darkTheme = darkTheme) {
-                GeoTagCameraApp(
+            TraceLensTheme(darkTheme = darkTheme) {
+                TraceLensApp(
                     shareUri = shareUri,
                     onShareConsumed = { shareUri = null }
                 )

@@ -12,7 +12,7 @@ import kotlin.coroutines.resume
 /**
  * Real Unity Ads implementation of [RewardedAdManager] — Game ID and
  * placement come from [UnityAdsConfig]. SDK init happens once in
- * [com.geotagcamera.geotagginglocationonphoto.GeoTagCameraApp.onCreate];
+ * [com.geotagcamera.geotagginglocationonphoto.TraceLensApp.onCreate];
  * this class only loads + shows the "Rewarded_Android" placement on demand
  * (loading ahead of time, e.g. as soon as Settings opens, would cut the
  * wait before "Watch ad" — left as a follow-up, not required to work).

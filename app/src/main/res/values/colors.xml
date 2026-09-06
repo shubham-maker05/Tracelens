@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Tokens from docs/GeoTag Camera Design System.dc.html (section 01, Color).
+    <!-- Tokens from docs/TraceLens Design System.dc.html (section 01, Color).
          Cartographer Blue is retired; the brand mark's dot is accent/verified. -->
 
     <!-- chrome: the camera layer, always dark regardless of system theme -->

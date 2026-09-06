@@ -73,7 +73,7 @@ fun AboutLegalScreen(onBack: () -> Unit, viewModel: AboutLegalViewModel = viewMo
         }
 
         Section("Licenses") {
-            Body("TraceLens — GPLv3.\nPoppins — SIL Open Font License 1.1.\nRoboto Mono — Apache License 2.0.\nMap data © OpenStreetMap contributors (ODbL), tiles © Stadia Maps.\nWeather — Open-Meteo (CC BY 4.0).")
+            Body("TraceLens — GPLv3. Built on the open-source GeoTag Camera project (GPLv3).\nPoppins — SIL Open Font License 1.1.\nRoboto Mono — Apache License 2.0.\nMap data © OpenStreetMap contributors (ODbL), tiles © Stadia Maps.\nWeather — Open-Meteo (CC BY 4.0).")
         }
 
         Section("Source") {

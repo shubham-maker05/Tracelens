@@ -1,4 +1,4 @@
-# GeoTag Camera
+# TraceLens
 
 > Free, open source, ad-free Android camera app that stamps photos with GPS location, address and timestamp. Built for field surveyors, students and NGO workers in India. Works offline and signs each photo on-device so it can later be proven unedited.
 
@@ -11,8 +11,8 @@
 - Permissions used: camera, location (fine and coarse); storage too, but only on Android 9 and older
 - Works offline: yes, reverse-geocoded addresses are cached on-device
 - Author: Konko Maji
-- Source code: https://github.com/konkomaji/geotagcamera
-- Website: https://konkomaji.github.io/geotagcamera/
+- Source code: https://github.com/shubham-maker05/Tracelens
+- Website: https://shubham-maker05.github.io/Tracelens/
 
 ## Core features (v1)
 

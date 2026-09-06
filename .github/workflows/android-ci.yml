@@ -52,5 +52,5 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: geotagcamera-debug
+          name: tracelens-debug
           path: app/build/outputs/apk/debug/*.apk

@@ -40,7 +40,6 @@ import coil.compose.AsyncImage
 import com.geotagcamera.geotagginglocationonphoto.ads.findActivity
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampFields
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampTemplate
-import com.geotagcamera.geotagginglocationonphoto.ui.common.NineAnchorGrid
 import com.geotagcamera.geotagginglocationonphoto.ui.common.rememberPhotoPicker
 import com.geotagcamera.geotagginglocationonphoto.ui.theme.GlassPanel
 import com.geotagcamera.geotagginglocationonphoto.ui.theme.PrismBackdrop
@@ -163,15 +162,6 @@ private fun SettingsContent(
     ) {
         SectionHeader("Stamp layout")
         TemplatePicker(fields.template) { t -> viewModel.update { it.copy(template = t) } }
-
-        Text(
-            "Position",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 6.dp)
-        )
-        Box(modifier = Modifier.padding(horizontal = 16.dp).width(150.dp)) {
-            NineAnchorGrid(selected = fields.position, onSelect = { a -> viewModel.update { it.copy(position = a) } })
-        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 

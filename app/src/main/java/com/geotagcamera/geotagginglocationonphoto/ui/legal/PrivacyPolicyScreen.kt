@@ -73,6 +73,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                 ) {
                     Text("TraceLens", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     Text("Made by Shubham", style = MaterialTheme.typography.bodySmall)
+                    Text("Built on the open-source GeoTag Camera project (GPLv3).", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

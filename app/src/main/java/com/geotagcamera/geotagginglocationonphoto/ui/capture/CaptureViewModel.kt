@@ -24,7 +24,6 @@ import com.geotagcamera.geotagginglocationonphoto.location.WeatherReading
 import com.geotagcamera.geotagginglocationonphoto.location.WeatherRepository
 import com.geotagcamera.geotagginglocationonphoto.security.PhotoIntegrity
 import com.geotagcamera.geotagginglocationonphoto.signature.SignatureOverlay
-import com.geotagcamera.geotagginglocationonphoto.stamp.StampAnchor
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampFields
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampPreferences
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampRenderer
@@ -160,10 +159,14 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun updatePosition(anchor: StampAnchor) {
+    fun updatePosition(xFraction: Float, yFraction: Float) {
         val current = stampFields.value
-        if (current.position == anchor) return
-        viewModelScope.launch { stampPreferences.update(current.copy(position = anchor)) }
+        val x = xFraction.coerceIn(0f, 1f)
+        val y = yFraction.coerceIn(0f, 1f)
+        if (current.positionXFraction == x && current.positionYFraction == y) return
+        viewModelScope.launch {
+            stampPreferences.update(current.copy(positionXFraction = x, positionYFraction = y))
+        }
     }
 
     /** Used by the Capture live-preview "tap to edit" Preview/Edit dialog. */

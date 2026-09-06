@@ -22,10 +22,8 @@ import androidx.navigation.navArgument
 import com.geotagcamera.geotagginglocationonphoto.ui.capture.CaptureScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.detail.PhotoDetailScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.gallery.GalleryScreen
-import com.geotagcamera.geotagginglocationonphoto.ui.launch.LaunchScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.legal.AboutLegalScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.legal.PrivacyPolicyScreen
-import com.geotagcamera.geotagginglocationonphoto.ui.onboarding.PermissionPrimerScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.settings.SettingsScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.upload.UploadPhotoScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.verify.VerifyScreen
@@ -46,8 +44,6 @@ private val tabs = listOf(Tab.Capture, Tab.Gallery, Tab.Settings)
 private val tabRoutes = tabs.map { it.route }.toSet()
 
 private object Routes {
-    const val LAUNCH = "launch"
-    const val ONBOARDING = "onboarding"
     const val PHOTO_DETAIL = "photoDetail/{photoId}"
     const val VERIFY = "verify?uri={uri}"
     const val ABOUT_LEGAL = "aboutLegal"
@@ -59,7 +55,7 @@ private object Routes {
 }
 
 @Composable
-fun GeoTagCameraApp(shareUri: String? = null, onShareConsumed: () -> Unit = {}) {
+fun TraceLensApp(shareUri: String? = null, onShareConsumed: () -> Unit = {}) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -106,32 +102,9 @@ fun GeoTagCameraApp(shareUri: String? = null, onShareConsumed: () -> Unit = {}) 
 
         NavHost(
             navController = navController,
-            startDestination = Routes.LAUNCH,
+            startDestination = Tab.Capture.route,
             modifier = contentModifier
         ) {
-            composable(Routes.LAUNCH) {
-                LaunchScreen(
-                    onNavigateToOnboarding = {
-                        navController.navigate(Routes.ONBOARDING) {
-                            popUpTo(Routes.LAUNCH) { inclusive = true }
-                        }
-                    },
-                    onNavigateToCapture = {
-                        navController.navigate(Tab.Capture.route) {
-                            popUpTo(Routes.LAUNCH) { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable(Routes.ONBOARDING) {
-                PermissionPrimerScreen(
-                    onContinue = {
-                        navController.navigate(Tab.Capture.route) {
-                            popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        }
-                    }
-                )
-            }
             // Capture/Gallery/Settings keep their current signatures for now — Phase 5 (Capture),
             // Phase 9 (Gallery), and Phase 10 (Settings) are what actually wire real navigation
             // triggers (gallery shortcut, photo detail, verify FAB, about/legal link) into these

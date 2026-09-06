@@ -112,7 +112,7 @@ private val ChromeColors = darkColorScheme(
 
 /** Top-level theme for Gallery/Settings/Detail/Verify/About. Follows the system. */
 @Composable
-fun GeoTagCameraTheme(
+fun TraceLensTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
@@ -125,7 +125,7 @@ fun GeoTagCameraTheme(
 
 /** Nested override for the camera layer. Wrap Capture/Launch/Onboarding/Signature content in this. */
 @Composable
-fun GeoTagChromeTheme(content: @Composable () -> Unit) {
+fun TraceLensChromeTheme(content: @Composable () -> Unit) {
     // Chrome is always a dark bar background, so always light (white) icons.
     ApplyStatusBar(background = ChromeColors.background, isAppearanceLight = false)
     MaterialTheme(colorScheme = ChromeColors, typography = GeoTagCameraTypography, content = content)

@@ -27,6 +27,8 @@ class StampPreferences(private val context: Context) {
     private object Keys {
         val TEMPLATE = stringPreferencesKey("template")
         val POSITION = stringPreferencesKey("position")
+        val POSITION_X = floatPreferencesKey("position_x_fraction")
+        val POSITION_Y = floatPreferencesKey("position_y_fraction")
         val MAP = booleanPreferencesKey("show_map")
         val COUNTRY = booleanPreferencesKey("show_country")
         val COORDINATES = booleanPreferencesKey("show_coordinates")
@@ -59,9 +61,11 @@ class StampPreferences(private val context: Context) {
                 ?: StampTemplate.CARD,
             position = prefs[Keys.POSITION]?.let { runCatching { StampAnchor.valueOf(it) }.getOrNull() }
                 ?: StampAnchor.BOTTOM_LEFT,
+            positionXFraction = prefs[Keys.POSITION_X] ?: 0.035f,
+            positionYFraction = prefs[Keys.POSITION_Y] ?: 1f,
             showMap = prefs[Keys.MAP] ?: true,
-            showCountry = prefs[Keys.COUNTRY] ?: true,
-            showAddress = prefs[Keys.ADDRESS] ?: true,
+            showCountry = prefs[Keys.COUNTRY] ?: false,
+            showAddress = prefs[Keys.ADDRESS] ?: false,
             showCoordinates = prefs[Keys.COORDINATES] ?: true,
             showTimestamp = prefs[Keys.TIMESTAMP] ?: true,
             showGmtOffset = prefs[Keys.GMT_OFFSET] ?: true,
@@ -106,6 +110,8 @@ class StampPreferences(private val context: Context) {
         context.stampDataStore.edit { prefs ->
             prefs[Keys.TEMPLATE] = fields.template.name
             prefs[Keys.POSITION] = fields.position.name
+            prefs[Keys.POSITION_X] = fields.positionXFraction.coerceIn(0f, 1f)
+            prefs[Keys.POSITION_Y] = fields.positionYFraction.coerceIn(0f, 1f)
             prefs[Keys.MAP] = fields.showMap
             prefs[Keys.COUNTRY] = fields.showCountry
             prefs[Keys.COORDINATES] = fields.showCoordinates

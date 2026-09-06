@@ -30,6 +30,8 @@ data class StampChip(val text: String)
 data class StampSpec(
     val template: StampTemplate,
     val anchor: StampAnchor,
+    val positionXFraction: Float,
+    val positionYFraction: Float,
     val placeName: String?,
     val countryCode: String?,
     val addressLine: String?,
@@ -40,6 +42,7 @@ data class StampSpec(
     val orgLabel: String?,
     val orgLogo: ImageBitmap?,
     val showSignedMark: Boolean,
+    val showEditedMark: Boolean,
     val showBrandMark: Boolean,
     val mapTile: ImageBitmap?,
     val textScale: Float = 1f,
@@ -47,7 +50,7 @@ data class StampSpec(
     val font: StampFont = StampFont.DEFAULT,
     val textColorArgb: Long? = null
 ) {
-    val hasFooterRow: Boolean get() = orgLabel != null || orgLogo != null || showSignedMark || showBrandMark
+    val hasFooterRow: Boolean get() = orgLabel != null || orgLogo != null || showSignedMark || showEditedMark || showBrandMark
 }
 
 /**
@@ -109,6 +112,8 @@ fun buildStampSpec(
     return StampSpec(
         template = fields.template,
         anchor = fields.position,
+        positionXFraction = fields.positionXFraction,
+        positionYFraction = fields.positionYFraction,
         placeName = overrideLocation ?: placeName,
         countryCode = countryCode,
         addressLine = if (overrideLocation != null) null else addressLine,
@@ -118,7 +123,8 @@ fun buildStampSpec(
         chips = chips,
         orgLabel = if (fields.showOrgLabel) fields.orgLabel else null,
         orgLogo = if (fields.showOrgLogo) orgLogo?.asImageBitmap() else null,
-        showSignedMark = fields.showSignatureField && hasSignature,
+        showSignedMark = fields.showSignatureField && hasSignature && overrideLocation == null && fields.customDateTimeText.isNullOrBlank(),
+        showEditedMark = overrideLocation != null || !fields.customDateTimeText.isNullOrBlank(),
         showBrandMark = fields.showBrandMark,
         mapTile = if (fields.showMap) mapTile?.asImageBitmap() else null,
         textScale = fields.textScale,

@@ -5,7 +5,7 @@ import com.geotagcamera.geotagginglocationonphoto.ads.UnityAdsConfig
 import com.unity3d.ads.IUnityAdsInitializationListener
 import com.unity3d.ads.UnityAds
 
-class GeoTagCameraApp : Application() {
+class TraceLensApp : Application() {
     override fun onCreate() {
         super.onCreate()
         // Unity Ads SDK init — Game ID lives in UnityAdsConfig. testMode is on by

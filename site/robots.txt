@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://konkomaji.github.io/geotagcamera/sitemap.xml
+Sitemap: https://shubham-maker05.github.io/Tracelens/sitemap.xml

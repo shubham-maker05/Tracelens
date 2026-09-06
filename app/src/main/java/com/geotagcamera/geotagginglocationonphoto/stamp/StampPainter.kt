@@ -94,7 +94,18 @@ object StampPainter {
 
         val px3 = px(3f) * boxScale; val px1 = px(1f)
         val margin = size.minDimension * 0.035f
-        val cardWidth = ((size.width * 0.62f) * boxScale).coerceAtMost(size.width - margin * 2)
+        val maxCardWidth = size.width * 0.92f
+        val naturalTextWidth = listOfNotNull(
+            spec.placeName?.let { tm.measure(it, placeStyle, maxLines = 1).size.width.toFloat() },
+            spec.addressLine?.let { tm.measure(it, addressStyle, maxLines = 2).size.width.toFloat() },
+            spec.coordinatesText?.let { tm.measure(it, coordsStyle, maxLines = 1).size.width.toFloat() },
+            listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ").takeIf { it.isNotBlank() }
+                ?.let { tm.measure(it, dateTimeStyle, maxLines = 2).size.width.toFloat() }
+        ).maxOrNull() ?: 0f
+        val desiredWidth = naturalTextWidth + size.width * 0.12f + if (spec.mapTile != null) size.width * 0.29f else 0f
+        val cardWidth = (maxOf(size.width * 0.62f, desiredWidth) * boxScale)
+            .coerceAtMost(maxCardWidth)
+            .coerceAtMost(size.width - margin * 2)
         val pad = cardWidth * 0.045f
         val gap = cardWidth * 0.03f
 
@@ -135,7 +146,7 @@ object StampPainter {
             (if (spec.chips.isNotEmpty()) gap + chipRowHeight else 0f) +
             (if (spec.hasFooterRow) gap + footerHeight else 0f)
 
-        val cardOrigin = anchorOrigin(spec.anchor, Size(cardWidth, cardHeight), margin)
+        val cardOrigin = anchorOrigin(spec, Size(cardWidth, cardHeight), margin)
         val corner = CornerRadius(cardWidth * 0.045f)
 
         drawRoundRect(color = CardScrim, topLeft = cardOrigin, size = Size(cardWidth, cardHeight), cornerRadius = corner)
@@ -213,8 +224,8 @@ object StampPainter {
                 drawText(label, topLeft = Offset(startX + markSize + px(4f), centerY - label.size.height / 2f))
                 rightX = startX - gap
             }
-            if (spec.showSignedMark) {
-                val label = tm.measure("SIGNED", mutedChipStyle, maxLines = 1)
+            if (spec.showSignedMark || spec.showEditedMark) {
+                val label = tm.measure(if (spec.showSignedMark) "SIGNED" else "EDITED", mutedChipStyle, maxLines = 1)
                 val startX = rightX - label.size.width
                 drawLine(CardBorder, Offset(startX - gap * 0.6f, centerY - footerHeight * 0.28f), Offset(startX - gap * 0.6f, centerY + footerHeight * 0.28f), strokeWidth = px1)
                 drawText(label, topLeft = Offset(startX, centerY - label.size.height / 2f))
@@ -278,7 +289,7 @@ object StampPainter {
         val width = maxOf(coordsLayout?.size?.width ?: 0, dateTimeLayout?.size?.width ?: 0) + pad * 2
         val height = stackedHeight(listOfNotNull(coordsLayout, dateTimeLayout), px2) + pad * 1.4f
 
-        val origin = anchorOrigin(spec.anchor, Size(width, height), margin)
+        val origin = anchorOrigin(spec, Size(width, height), margin)
         drawRoundRect(CardScrim, origin, Size(width, height), CornerRadius(px(9f)))
 
         var y = origin.y + pad * 0.7f
@@ -289,7 +300,19 @@ object StampPainter {
     // ---- Shared helpers ----
 
     /** Nine-anchor placement: same grid the viewfinder drag and the Settings position picker use. */
-    private fun DrawScope.anchorOrigin(anchor: StampAnchor, contentSize: Size, margin: Float): Offset {
+    private fun DrawScope.anchorOrigin(spec: StampSpec, contentSize: Size, margin: Float): Offset {
+        val x = (size.width * spec.positionXFraction).coerceIn(
+            margin,
+            (size.width - contentSize.width - margin).coerceAtLeast(margin)
+        )
+        val y = (size.height * spec.positionYFraction - contentSize.height).coerceIn(
+            margin,
+            (size.height - contentSize.height - margin).coerceAtLeast(margin)
+        )
+        return Offset(x, y)
+    }
+
+    private fun DrawScope.legacyAnchorOrigin(anchor: StampAnchor, contentSize: Size, margin: Float): Offset {
         val x = when (anchor) {
             StampAnchor.TOP_LEFT, StampAnchor.MID_LEFT, StampAnchor.BOTTOM_LEFT -> margin
             StampAnchor.TOP_CENTER, StampAnchor.MID_CENTER, StampAnchor.BOTTOM_CENTER -> (size.width - contentSize.width) / 2f

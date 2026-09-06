@@ -31,9 +31,11 @@ enum class StampFont { DEFAULT, SERIF, MONOSPACE, ROUNDED }
 data class StampFields(
     val template: StampTemplate = StampTemplate.CARD,
     val position: StampAnchor = StampAnchor.BOTTOM_LEFT,
+    val positionXFraction: Float = 0.035f,
+    val positionYFraction: Float = 1f,
     val showMap: Boolean = true,
-    val showCountry: Boolean = true,
-    val showAddress: Boolean = true,
+    val showCountry: Boolean = false,
+    val showAddress: Boolean = false,
     val showCoordinates: Boolean = true,
     val showTimestamp: Boolean = true,
     val showGmtOffset: Boolean = true,

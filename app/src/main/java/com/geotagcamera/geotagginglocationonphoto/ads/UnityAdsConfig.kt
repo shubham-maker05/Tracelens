@@ -11,7 +11,7 @@ package com.geotagcamera.geotagginglocationonphoto.ads
  * Play Store with test mode left on.
  */
 object UnityAdsConfig {
-    const val GAME_ID = "800368076"
+    const val GAME_ID = "800368368"
     const val REWARDED_PLACEMENT_ID = "Rewarded_Android"
     const val TEST_MODE = true
 }

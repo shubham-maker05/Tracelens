@@ -62,9 +62,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.geotagcamera.geotagginglocationonphoto.ads.findActivity
 import androidx.compose.ui.unit.sp
@@ -75,10 +74,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.geotagcamera.geotagginglocationonphoto.stamp.StampPainter
 import com.geotagcamera.geotagginglocationonphoto.ui.review.ReviewScreen
-import com.geotagcamera.geotagginglocationonphoto.ui.common.anchorForFraction
 import com.geotagcamera.geotagginglocationonphoto.ui.permissions.CAPTURE_PERMISSIONS
 import com.geotagcamera.geotagginglocationonphoto.ui.permissions.hasCapturePermissions
-import com.geotagcamera.geotagginglocationonphoto.ui.theme.GeoTagChromeTheme
+import com.geotagcamera.geotagginglocationonphoto.ui.theme.TraceLensChromeTheme
 import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -107,7 +105,7 @@ fun CaptureScreen(
         if (!hasPermissions) launcher.launch(CAPTURE_PERMISSIONS)
     }
 
-    GeoTagChromeTheme {
+    TraceLensChromeTheme {
         if (hasPermissions) {
             CameraContent(viewModel, onOpenGallery, onOpenSettings)
         } else {
@@ -127,8 +125,6 @@ private fun CameraContent(
     val scope = rememberCoroutineScope()
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val locationChip by viewModel.locationChip.collectAsStateWithLifecycle()
-    val liveSpec by viewModel.liveSpec.collectAsStateWithLifecycle()
     val lastCaptureUri by viewModel.lastCaptureUri.collectAsStateWithLifecycle()
     val autoDismiss by viewModel.autoDismissReview.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -141,29 +137,29 @@ private fun CameraContent(
     var lensFacing by remember { mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA) }
     var flashMode by remember { mutableStateOf(ImageCapture.FLASH_MODE_AUTO) }
     var aspect by remember { mutableStateOf(CaptureAspect.RATIO_4_3) }
-    var gridOn by remember { mutableStateOf(true) }
     var camera by remember { mutableStateOf<Camera?>(null) }
     var zoomRatio by remember { mutableStateOf(1f) }
     var minZoom by remember { mutableStateOf(1f) }
     var maxZoom by remember { mutableStateOf(1f) }
     var reticle by remember { mutableStateOf<Offset?>(null) }
-    var dragAnchor by remember { mutableStateOf<com.geotagcamera.geotagginglocationonphoto.stamp.StampAnchor?>(null) }
     var showPreviewEdit by remember { mutableStateOf(false) }
     val stampFieldsState by viewModel.stampFields.collectAsStateWithLifecycle()
-    var viewSize by remember { mutableStateOf(IntSize.Zero) }
 
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
-            // TextureView-backed preview re-attaches without the ~1-2s black flash
-            // a SurfaceView shows when returning to this screen from another tab.
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
         }
     }
     // ImageCapture rebuilds when the aspect ratio changes (it's a build-time property). 1:1 captures 4:3 then crops.
     val imageCapture = remember(aspect) {
         val ratio = if (aspect == CaptureAspect.RATIO_16_9) AspectRatio.RATIO_16_9 else AspectRatio.RATIO_4_3
         ImageCapture.Builder().setTargetAspectRatio(ratio).build()
+    }
+    val frameRatio = when (aspect) {
+        CaptureAspect.RATIO_16_9 -> if (isLandscape) 16f / 9f else 9f / 16f
+        CaptureAspect.RATIO_1_1 -> 1f
+        CaptureAspect.RATIO_4_3 -> if (isLandscape) 4f / 3f else 3f / 4f
     }
 
     // Shutter feedback
@@ -175,7 +171,11 @@ private fun CameraContent(
     LaunchedEffect(flashMode, imageCapture) { imageCapture.flashMode = flashMode }
 
     DisposableEffect(lensFacing, imageCapture) {
-        val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+        val previewRatio = if (aspect == CaptureAspect.RATIO_16_9) AspectRatio.RATIO_16_9 else AspectRatio.RATIO_4_3
+        val preview = Preview.Builder()
+            .setTargetAspectRatio(previewRatio)
+            .build()
+            .also { it.setSurfaceProvider(previewView.surfaceProvider) }
         var provider: ProcessCameraProvider? = null
         scope.launch {
             provider = context.getCameraProvider().also { p ->
@@ -226,44 +226,51 @@ private fun CameraContent(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .onSizeChanged { viewSize = it }
     ) {
-            // Viewfinder + tap-to-focus + pinch-to-zoom (bottom layer)
-            AndroidView(
-                factory = { previewView },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(camera) {
-                        detectTapGestures { offset ->
-                            reticle = offset
-                            val cam = camera ?: return@detectTapGestures
-                            val point = previewView.meteringPointFactory.createPoint(offset.x, offset.y)
-                            cam.cameraControl.startFocusAndMetering(FocusMeteringAction.Builder(point).build())
+            val frameModifier = if (isLandscape) {
+                Modifier.fillMaxHeight().aspectRatio(frameRatio).align(Alignment.Center)
+            } else {
+                Modifier.fillMaxWidth().aspectRatio(frameRatio).align(Alignment.Center)
+            }
+            Box(
+                modifier = frameModifier
+            ) {
+                // Viewfinder + tap-to-focus + pinch-to-zoom share the exact capture frame.
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(camera) {
+                            detectTapGestures { offset ->
+                                reticle = offset
+                                val cam = camera ?: return@detectTapGestures
+                                val point = previewView.meteringPointFactory.createPoint(offset.x, offset.y)
+                                cam.cameraControl.startFocusAndMetering(FocusMeteringAction.Builder(point).build())
+                            }
                         }
-                    }
-                    .pointerInput(camera, minZoom, maxZoom) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            if (zoom != 1f) applyZoom(zoomRatio * zoom)
+                        .pointerInput(camera, minZoom, maxZoom) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (zoom != 1f) applyZoom(zoomRatio * zoom)
+                            }
                         }
-                    }
-            )
+                )
+                EdgeScrims()
+                reticle?.let { FocusReticle(it) }
 
-            if (gridOn) RuleOfThirdsGrid()
-            EdgeScrims()
+                LiveStampOverlay(viewModel = viewModel, onEdit = { showPreviewEdit = true })
+            }
 
             TopControlRow(
                 flashMode = flashMode,
                 aspect = aspect,
-                gridOn = gridOn,
                 onFlash = { flashMode = nextFlash(flashMode) },
                 onAspect = { aspect = nextAspect(aspect) },
-                onGrid = { gridOn = !gridOn },
                 onSettings = onOpenSettings,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
-            LocationChip(
-                state = locationChip,
+            LocationChipContainer(
+                viewModel = viewModel,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 14.dp, top = 84.dp)
@@ -279,43 +286,15 @@ private fun CameraContent(
                 )
             }
 
-            reticle?.let { FocusReticle(it) }
-
-            // Live WYSIWYG stamp overlay + drag-to-reposition (long-press then drag)
-            // + tap-to-edit (opens Preview/Edit — appearance + ad-locked field editing).
-            liveSpec?.let { spec ->
-                val textMeasurer = rememberTextMeasurer()
-                val shown = dragAnchor?.let { spec.copy(anchor = it) } ?: spec
-                androidx.compose.foundation.Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { off ->
-                                    dragAnchor = anchorForFraction(off.x / size.width, off.y / size.height)
-                                },
-                                onDrag = { change, _ ->
-                                    dragAnchor = anchorForFraction(change.position.x / size.width, change.position.y / size.height)
-                                },
-                                onDragEnd = { dragAnchor?.let { viewModel.updatePosition(it) }; dragAnchor = null },
-                                onDragCancel = { dragAnchor = null }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectTapGestures(onTap = { showPreviewEdit = true })
-                        }
-                ) {
-                    StampPainter.draw(this, shown, textMeasurer)
-                }
-                Text(
-                    "TAP TO EDIT · DRAG TO REPOSITION",
-                    color = Ink.copy(alpha = 0.5f),
-                    fontSize = 9.5.sp,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, bottom = if (isLandscape) 16.dp else 156.dp)
-                )
-            }
+            // Keep interaction guidance outside the capture frame so it cannot burn into a photo.
+            Text(
+                "TAP TO EDIT · DRAG TO REPOSITION",
+                color = Ink.copy(alpha = 0.5f),
+                fontSize = 9.5.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = if (isLandscape) 16.dp else 156.dp)
+            )
 
             // Bottom control bar: thumbnail · shutter · switch
             BottomBar(
@@ -394,18 +373,6 @@ private fun CameraContent(
 }
 
 @Composable
-private fun RuleOfThirdsGrid() {
-    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-        val line = Color.White.copy(alpha = 0.16f)
-        val w = size.width; val h = size.height
-        drawLine(line, Offset(0f, h / 3f), Offset(w, h / 3f), 1f)
-        drawLine(line, Offset(0f, 2f * h / 3f), Offset(w, 2f * h / 3f), 1f)
-        drawLine(line, Offset(w / 3f, 0f), Offset(w / 3f, h), 1f)
-        drawLine(line, Offset(2f * w / 3f, 0f), Offset(2f * w / 3f, h), 1f)
-    }
-}
-
-@Composable
 private fun EdgeScrims() {
     androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
         val top = Color(0x8C08090A)
@@ -422,10 +389,8 @@ private fun EdgeScrims() {
 private fun TopControlRow(
     flashMode: Int,
     aspect: CaptureAspect,
-    gridOn: Boolean,
     onFlash: () -> Unit,
     onAspect: () -> Unit,
-    onGrid: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -438,7 +403,6 @@ private fun TopControlRow(
     ) {
         GlassPill(text = flashLabel(flashMode), onClick = onFlash)
         GlassPill(text = aspectLabel(aspect), onClick = onAspect)
-        GlassPill(text = "Grid", onClick = onGrid, filled = gridOn)
         Spacer(Modifier.weight(1f))
         GlassPill(text = "⚙", onClick = onSettings)
     }
@@ -458,6 +422,46 @@ private fun GlassPill(text: String, onClick: () -> Unit, filled: Boolean = false
     ) {
         Text(text, color = if (filled) Color(0xFF0C0E10) else Ink, fontSize = 12.sp)
     }
+}
+
+@Composable
+private fun LiveStampOverlay(viewModel: CaptureViewModel, onEdit: () -> Unit) {
+    val liveSpec by viewModel.liveSpec.collectAsStateWithLifecycle()
+    var dragPosition by remember { mutableStateOf<Offset?>(null) }
+    val textMeasurer = rememberTextMeasurer()
+
+    liveSpec?.let { spec ->
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { off -> dragPosition = off },
+                        onDrag = { change, _ -> dragPosition = change.position },
+                        onDragEnd = {
+                            dragPosition?.let { viewModel.updatePosition(it.x / size.width, it.y / size.height) }
+                            dragPosition = null
+                        },
+                        onDragCancel = { dragPosition = null }
+                    )
+                }
+                .pointerInput(Unit) { detectTapGestures(onTap = { onEdit() }) }
+        ) {
+            val shown = dragPosition?.let {
+                spec.copy(
+                    positionXFraction = (it.x / size.width.coerceAtLeast(1f)).coerceIn(0f, 1f),
+                    positionYFraction = (it.y / size.height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                )
+            } ?: spec
+            StampPainter.draw(this, shown, textMeasurer)
+        }
+    }
+}
+
+@Composable
+private fun LocationChipContainer(viewModel: CaptureViewModel, modifier: Modifier = Modifier) {
+    val state by viewModel.locationChip.collectAsStateWithLifecycle()
+    LocationChip(state = state, modifier = modifier)
 }
 
 @Composable

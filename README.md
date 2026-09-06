@@ -1,10 +1,10 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
-  <img alt="GeoTag Camera" src="assets/banner-light.svg">
+  <img alt="TraceLens" src="assets/banner-light.svg">
 </picture>
 
-# GeoTag Camera
+# TraceLens
 
 No ads. No paywall. We know, it's suspicious.
 
@@ -12,14 +12,14 @@ Free, open source, ad free Android camera app that stamps every photo with GPS l
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84.svg)](https://developer.android.com)
-[![Build](https://github.com/konkomaji/geotagcamera/actions/workflows/android-ci.yml/badge.svg)](https://github.com/konkomaji/geotagcamera/actions/workflows/android-ci.yml)
+[![Build](https://github.com/shubham-maker05/Tracelens/actions/workflows/android-ci.yml/badge.svg)](https://github.com/shubham-maker05/Tracelens/actions/workflows/android-ci.yml)
 [![Status](https://img.shields.io/badge/status-in%20development-orange.svg)](#roadmap)
 
-Website: https://konkomaji.github.io/geotagcamera/
+Website: https://shubham-maker05.github.io/Tracelens/
 
 ## Why this exists
 
-Most geotagging camera apps on the Play Store make you sit through ads before you can even open the camera, lock basic stamp fields behind a subscription, ask for permissions that have nothing to do with taking a photo, and stop working the moment you lose signal. GeoTag Camera fixes that, in the open, so anyone can read the code and check it for themselves.
+Most geotagging camera apps on the Play Store make you sit through ads before you can even open the camera, lock basic stamp fields behind a subscription, ask for permissions that have nothing to do with taking a photo, and stop working the moment you lose signal. TraceLens fixes that, in the open, so anyone can read the code and check it for themselves.
 
 ## Features
 
@@ -27,7 +27,7 @@ Most geotagging camera apps on the Play Store make you sit through ads before yo
 - Clean camera capture built on CameraX, nothing running in the background that shouldn't be
 - GPS coordinates, address and timestamp stamped directly onto the photo
 - GPS data also written into the photo's own EXIF metadata, so GIS and photo tools pick it up automatically
-- Every capture is published straight to your phone's Photos/Gallery app (Pictures/GeoTagCamera), nothing leaves your phone unless you choose to share it
+- Every capture is published straight to your phone's Photos/Gallery app (Pictures/TraceLens), nothing leaves your phone unless you choose to share it
 
 **Built to actually work in the field**
 - Offline first reverse geocoding, addresses are cached on-device so the stamp keeps working with no signal
@@ -87,8 +87,8 @@ Version 1.0.0 shipped with everything listed under Features above. 1.1.0 is a fu
 ## Building from source
 
 ```
-git clone https://github.com/konkomaji/geotagcamera.git
-cd geotagcamera
+git clone https://github.com/shubham-maker05/Tracelens.git
+cd Tracelens
 ```
 
 Open the project in Android Studio (Koala or newer) and let it sync, or build from the command line:
@@ -115,7 +115,7 @@ Issues and pull requests are welcome. If you're planning a larger change, open a
 
 ## License
 
-GeoTag Camera is licensed under the [GNU General Public License v3.0](LICENSE). You're free to use, study, modify and redistribute it under the same terms.
+TraceLens is licensed under the [GNU General Public License v3.0](LICENSE). You're free to use, study, modify and redistribute it under the same terms.
 
 ## Author
 
@@ -162,9 +162,9 @@ Build: `./gradlew assembleDebug` → APK in `app/build/outputs/apk/debug/`.
 
 ## 🔊 Unity Ads — now wired for real
 
-- Game ID `800368076` and placement `Rewarded_Android` are set in `ads/UnityAdsConfig.kt`.
+- Game ID `800368368` and placement `Rewarded_Android` are set in `ads/UnityAdsConfig.kt`.
 - `ads/UnityAdsManager.kt` implements the real load → show → reward-on-COMPLETED flow.
-- SDK initializes once in `GeoTagCameraApp.onCreate()` (Application class — already wired in the manifest).
+- SDK initializes once in `TraceLensApp.onCreate()` (Application class — already wired in the manifest).
 - `TEST_MODE = true` in `UnityAdsConfig.kt` — you'll see Unity's test creative for now. **Set it to `false` before publishing**, or Unity may flag/reject the app.
 - `INTERNET` permission was already present in the manifest — nothing to add there.
 - I can't compile/run Gradle in this environment, so this hasn't been build-verified against the exact `unity-ads:4.12.2` API surface — do a Gradle sync + one real device test of "Watch ad to unlock" before you ship. If any Unity Ads method signature has shifted in a newer/older SDK version, the fix is localized to `UnityAdsManager.kt`.

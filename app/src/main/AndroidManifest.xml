@@ -23,12 +23,12 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
-        android:name=".GeoTagCameraApp"
+        android:name=".TraceLensApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:theme="@style/Theme.GeoTagCamera"
+        android:theme="@style/Theme.TraceLens"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false">
 
