@@ -115,7 +115,7 @@ private fun ResultBlock(done: VerifyUiState.Done) {
         is VerificationOutcome.Edited ->
             Triple(MaterialTheme.colorScheme.error, "Edited since capture", "A proof is present, but the image no longer matches it.")
         is VerificationOutcome.NoProof ->
-            Triple(MaterialTheme.colorScheme.onSurfaceVariant, "No proof found", "This photo carries no GeoTag proof. That isn't a failure — it just wasn't signed by this app.")
+            Triple(MaterialTheme.colorScheme.onSurfaceVariant, "No proof found", "This photo carries no TraceLens proof. That isn't a failure — it just wasn't signed by this app.")
         is VerificationOutcome.Unreadable ->
             Triple(MaterialTheme.colorScheme.onSurfaceVariant, "Couldn't read this file", "The file couldn't be opened or decoded.")
     }

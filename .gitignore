@@ -12,6 +12,8 @@
 *.idsig
 *.jks
 *.keystore
+signing.properties
+.release-keystore-password
 
 # internal planning/research notes, not part of the public repo
 /docs/

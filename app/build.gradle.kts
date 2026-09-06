@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
@@ -14,6 +15,11 @@ val stadiaApiKey: String = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }.getProperty("stadiaMaps.apiKey", "")
 
+val signingProperties = Properties().apply {
+    val file = rootProject.file("signing.properties")
+    if (file.exists()) FileInputStream(file).use { load(it) }
+}
+
 android {
     namespace = "com.geotagcamera.geotagginglocationonphoto"
     compileSdk = 34
@@ -22,8 +28,8 @@ android {
         applicationId = "com.geotagcamera.geotagginglocationonphoto"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -34,12 +40,20 @@ android {
         release {
             // Keep release packaging reliable on constrained build machines;
             // runtime performance is unchanged and the APK remains signed.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (signingProperties.getProperty("storeFile") != null) {
+                signingConfig = signingConfigs.create("releaseLocal") {
+                    storeFile = rootProject.file(signingProperties.getProperty("storeFile"))
+                    storePassword = signingProperties.getProperty("storePassword")
+                    keyAlias = signingProperties.getProperty("keyAlias")
+                    keyPassword = signingProperties.getProperty("keyPassword")
+                }
+            }
         }
     }
 
