@@ -1,0 +1,17 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.idsig
+*.jks
+*.keystore
+
+# internal planning/research notes, not part of the public repo
+/docs/

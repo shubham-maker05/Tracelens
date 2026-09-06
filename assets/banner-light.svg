@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="GeoTag Camera">
+  <rect width="1200" height="300" fill="#F7F6F4"/>
+
+  <g transform="translate(72,68) scale(0.82)">
+    <path fill="#16181A" fill-rule="evenodd" d="M75,25 L125,25 A50,50 0 0 1 175,75 L175,125 A50,50 0 0 1 125,175 L75,175 A50,50 0 0 1 25,125 L25,75 A50,50 0 0 1 75,25 Z M75,39 L125,39 A36,36 0 0 1 161,75 L161,125 A36,36 0 0 1 125,161 L75,161 A36,36 0 0 1 39,125 L39,75 A36,36 0 0 1 75,39 Z"/>
+    <circle cx="100" cy="100" r="18.75" fill="#56CB98"/>
+  </g>
+
+  <text x="290" y="150" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="#16181A">GeoTag Camera</text>
+  <text x="292" y="192" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#6A6F75">Free, open source, ad-free GPS camera for Android</text>
+
+  <g font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" fill="#4E5459">
+    <rect x="292" y="222" width="98" height="36" rx="18" fill="#FFFFFF" stroke="#D8D5CF"/>
+    <text x="312" y="245">No Ads</text>
+
+    <rect x="404" y="222" width="150" height="36" rx="18" fill="#FFFFFF" stroke="#D8D5CF"/>
+    <text x="424" y="245">Open Source</text>
+
+    <rect x="568" y="222" width="150" height="36" rx="18" fill="#FFFFFF" stroke="#D8D5CF"/>
+    <text x="588" y="245">Works Offline</text>
+
+    <rect x="732" y="222" width="120" height="36" rx="18" fill="#FFFFFF" stroke="#D8D5CF"/>
+    <text x="752" y="245">GPLv3</text>
+  </g>
+</svg>

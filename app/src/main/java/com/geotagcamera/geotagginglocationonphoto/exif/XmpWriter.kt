@@ -1,0 +1,115 @@
+package com.geotagcamera.geotagginglocationonphoto.exif
+
+import java.io.ByteArrayOutputStream
+import java.io.File
+
+/**
+ * Mirrors the integrity proof into a standard XMP APP1 segment, alongside the
+ * EXIF UserComment copy. Two carriers because different downstream tools keep
+ * different metadata: some strip EXIF but preserve XMP, some the reverse.
+ *
+ * Deliberately hand-rolled raw JPEG segment surgery (spiked and unit-tested
+ * against real bytes) rather than pulling in Adobe XMPCore: we only ever write
+ * and read one tiny custom property, so a full XMP toolkit is unjustified.
+ * The proof JSON is embedded verbatim (XML-escaped) as `<geotag:proof>` in a
+ * private namespace. Pure JVM, no Android dependency.
+ *
+ * Note the two required-but-invisible characters (the XMP identifier's NUL
+ * terminator and the xpacket BOM) are built arithmetically from code points,
+ * NOT typed as literals — a literal BOM/NUL in the source file trips lint's
+ * ByteOrderMark check and git's binary-file handling.
+ *
+ * Safety: [embed] only ever *inserts* a new APP1 segment and never rewrites
+ * existing bytes, and it refuses anything that isn't a well-formed JPEG (must
+ * start with SOI), so it cannot corrupt image data or clobber existing EXIF.
+ */
+object XmpWriter {
+
+    // Standard Adobe XMP APP1 identifier, NUL-terminated (28 chars + NUL = 29 bytes).
+    private val XMP_NAMESPACE_ID = "http://ns.adobe.com/xap/1.0/" + 0.toChar()
+    private val XPACKET_BOM = 0xFEFF.toChar().toString()
+    private val PROOF_REGEX = Regex("<geotag:proof>(.*?)</geotag:proof>", RegexOption.DOT_MATCHES_ALL)
+
+    fun write(file: File, proofJson: String) {
+        file.writeBytes(embed(file.readBytes(), proofJson))
+    }
+
+    fun read(file: File): String? = extract(file.readBytes())
+
+    /** Returns [jpeg] with an XMP APP1 segment carrying [proofJson] inserted; input unchanged if it isn't a JPEG. */
+    fun embed(jpeg: ByteArray, proofJson: String): ByteArray {
+        if (jpeg.size < 2 || u(jpeg[0]) != 0xFF || u(jpeg[1]) != 0xD8) return jpeg
+
+        val packet = xmpPacket(proofJson).toByteArray(Charsets.UTF_8)
+        val idBytes = XMP_NAMESPACE_ID.toByteArray(Charsets.UTF_8)
+        val contentLen = 2 + idBytes.size + packet.size // length field counts itself + payload
+        if (contentLen > 0xFFFF) return jpeg // too large for one APP1 — refuse rather than corrupt
+
+        // Insert after SOI, and after a leading APP0 (JFIF) if present, so the
+        // conventional SOI,APP0,... ordering is preserved.
+        var insertAt = 2
+        if (jpeg.size >= 6 && u(jpeg[2]) == 0xFF && u(jpeg[3]) == 0xE0) {
+            insertAt = 4 + ((u(jpeg[4]) shl 8) or u(jpeg[5]))
+        }
+
+        val out = ByteArrayOutputStream(jpeg.size + contentLen + 2)
+        out.write(jpeg, 0, insertAt)
+        out.write(0xFF); out.write(0xE1)
+        out.write((contentLen ushr 8) and 0xFF); out.write(contentLen and 0xFF)
+        out.write(idBytes)
+        out.write(packet)
+        out.write(jpeg, insertAt, jpeg.size - insertAt)
+        return out.toByteArray()
+    }
+
+    /** Extracts the proof JSON from the XMP APP1 segment, or null if there isn't one. */
+    fun extract(jpeg: ByteArray): String? {
+        val n = jpeg.size
+        if (n < 2 || u(jpeg[0]) != 0xFF || u(jpeg[1]) != 0xD8) return null
+        var i = 2
+        val idBytes = XMP_NAMESPACE_ID.toByteArray(Charsets.UTF_8)
+        while (i + 3 < n) {
+            if (u(jpeg[i]) != 0xFF) break
+            val marker = u(jpeg[i + 1])
+            if (marker == 0xDA || marker == 0xD9) break // SOS/EOI — metadata is all before here
+            val len = (u(jpeg[i + 2]) shl 8) or u(jpeg[i + 3])
+            if (marker == 0xE1 && startsWith(jpeg, i + 4, idBytes)) {
+                val packetStart = i + 4 + idBytes.size
+                val packetEnd = i + 2 + len
+                if (packetEnd <= n && packetEnd > packetStart) {
+                    val xml = String(jpeg, packetStart, packetEnd - packetStart, Charsets.UTF_8)
+                    PROOF_REGEX.find(xml)?.let { return unescapeXml(it.groupValues[1]) }
+                }
+            }
+            i += 2 + len
+        }
+        return null
+    }
+
+    private fun xmpPacket(proofJson: String): String {
+        val proof = escapeXml(proofJson)
+        return "<?xpacket begin=\"" + XPACKET_BOM + "\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">" +
+            "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+            "<rdf:Description rdf:about=\"\" xmlns:geotag=\"https://geotagcamera.app/ns/1.0/\">" +
+            "<geotag:proof>" + proof + "</geotag:proof>" +
+            "</rdf:Description></rdf:RDF></x:xmpmeta>" +
+            "<?xpacket end=\"w\"?>"
+    }
+
+    private fun escapeXml(s: String): String = s
+        .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        .replace("\"", "&quot;").replace("'", "&apos;")
+
+    private fun unescapeXml(s: String): String = s
+        .replace("&apos;", "'").replace("&quot;", "\"")
+        .replace("&gt;", ">").replace("&lt;", "<").replace("&amp;", "&")
+
+    private fun startsWith(data: ByteArray, offset: Int, prefix: ByteArray): Boolean {
+        if (offset + prefix.size > data.size) return false
+        for (k in prefix.indices) if (data[offset + k] != prefix[k]) return false
+        return true
+    }
+
+    private fun u(b: Byte): Int = b.toInt() and 0xFF
+}
