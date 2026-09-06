@@ -143,7 +143,7 @@ Build as usual: `./gradlew assembleDebug` (APK lands in `app/build/outputs/apk/d
 ## 🆕 TraceLens rebrand + feature additions
 
 **Done, working:**
-- App renamed to **TraceLens** everywhere in the UI (app name, launch screen, brand mark on the stamp, About screen). The Kotlin package/applicationId is unchanged (`com.geotagcamera...`) — renaming that touches every file and the Play Console listing, so it's left for you to do deliberately if/when you publish.
+- App branding is **TraceLens** throughout the UI, launch screen, stamp, and legal screens. The technical Android namespace remains stable for update compatibility.
 - **Settings menu** additions: Upload Photo, Preview/Edit stamp look, Dark theme switch, Privacy Policy, Share App, "TraceLens · Made by Shubham" footer.
 - **Upload Photo** (`ui/upload/`) — pick any gallery photo, TraceLens fetches your current GPS fix, reverse-geocodes it, burns the same stamp + tamper-evident signature a live capture gets, and saves to Pictures/TraceLens.
 - **Preview/Edit dialog** (`ui/settings/PreviewEditDialog.kt`) — project name, text size, box size, font, colour, all live-applied to the CARD stamp template (`StampPainter.drawCard`). Also reachable by **tapping the live stamp box on the Capture screen**.
@@ -154,7 +154,7 @@ Build as usual: `./gradlew assembleDebug` (APK lands in `app/build/outputs/apk/d
 **Before you publish, you must:**
 1. **Swap in real Unity Ads.** Add `implementation("com.unity3d.ads:unity-ads:4.+")`, initialize with your Unity Game ID, and replace `MockRewardedAdManager` with a real implementation — full steps are in the doc comment at the top of `ads/RewardedAdManager.kt`.
 2. **Write your real Privacy Policy** — `ui/legal/PrivacyPolicyScreen.kt` currently has honest placeholder copy describing what the app actually does; swap in your reviewed final text.
-3. Optional: rename the Kotlin package from `com.geotagcamera.geotagginglocationonphoto` if you want a matching `applicationId` for the Play listing — this is a mechanical but wide-reaching rename (every file's package line + import + `AndroidManifest.xml` + `build.gradle.kts` `applicationId`), best done with Android Studio's "Refactor > Rename Package" rather than by hand.
+3. The Android namespace and application ID are intentionally stable so published updates retain existing app data and signing compatibility.
 
 Build: `./gradlew assembleDebug` → APK in `app/build/outputs/apk/debug/`.
 
@@ -162,10 +162,10 @@ Build: `./gradlew assembleDebug` → APK in `app/build/outputs/apk/debug/`.
 
 ## 🔊 Unity Ads — now wired for real
 
-- Game ID `800368368` and placement `Rewarded_Android` are set in `ads/UnityAdsConfig.kt`.
+- Game ID `800368416` and placement `Rewarded_Android` are set in `ads/UnityAdsConfig.kt`.
 - `ads/UnityAdsManager.kt` implements the real load → show → reward-on-COMPLETED flow.
 - SDK initializes once in `TraceLensApp.onCreate()` (Application class — already wired in the manifest).
-- `TEST_MODE = true` in `UnityAdsConfig.kt` — you'll see Unity's test creative for now. **Set it to `false` before publishing**, or Unity may flag/reject the app.
+- `TEST_MODE = false` in `UnityAdsConfig.kt` for release builds, so production users receive real inventory. Use a separate local test build with Unity test mode when validating ad playback.
 - `INTERNET` permission was already present in the manifest — nothing to add there.
 - I can't compile/run Gradle in this environment, so this hasn't been build-verified against the exact `unity-ads:4.12.2` API surface — do a Gradle sync + one real device test of "Watch ad to unlock" before you ship. If any Unity Ads method signature has shifted in a newer/older SDK version, the fix is localized to `UnityAdsManager.kt`.
 
