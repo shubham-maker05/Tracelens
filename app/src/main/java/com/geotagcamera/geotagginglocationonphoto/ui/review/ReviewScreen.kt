@@ -4,6 +4,8 @@ import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +60,8 @@ fun ReviewScreen(
     review: CaptureUiState.Review,
     onDismiss: () -> Unit,
     onShare: () -> Unit,
+    onStampPositionChange: (Float, Float) -> Unit,
+    onEditStamp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -71,7 +76,7 @@ fun ReviewScreen(
 
         if (isLandscape) {
             Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                PhotoPane(review.uri, Modifier.weight(1f).fillMaxHeight().padding(vertical = 8.dp))
+                PhotoPane(review, Modifier.weight(1f).fillMaxHeight().padding(vertical = 8.dp), onStampPositionChange, onEditStamp)
                 Spacer(Modifier.width(16.dp))
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -79,7 +84,7 @@ fun ReviewScreen(
                 ) { Actions(review, onDismiss, onShare) }
             }
         } else {
-            PhotoPane(review.uri, Modifier.fillMaxWidth().weight(1f).padding(vertical = 8.dp))
+            PhotoPane(review, Modifier.fillMaxWidth().weight(1f).padding(vertical = 8.dp), onStampPositionChange, onEditStamp)
             Actions(review, onDismiss, onShare)
         }
     }
@@ -111,10 +116,15 @@ private fun TopBar(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun PhotoPane(uri: String, modifier: Modifier) {
+private fun PhotoPane(
+    review: CaptureUiState.Review,
+    modifier: Modifier,
+    onStampPositionChange: (Float, Float) -> Unit,
+    onEditStamp: () -> Unit
+) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         AsyncImage(
-            model = uri,
+            model = "${review.uri}?reviewRevision=${review.revision}",
             contentDescription = "Captured photo",
             contentScale = ContentScale.Fit,
             modifier = Modifier
@@ -122,6 +132,26 @@ private fun PhotoPane(uri: String, modifier: Modifier) {
                 .aspectRatio(3f / 4f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFF1A1D20))
+                .pointerInput(review.uri, review.revision) {
+                    detectDragGestures(
+                        onDragStart = { start ->
+                            onStampPositionChange(
+                                start.x / size.width.coerceAtLeast(1).toFloat(),
+                                start.y / size.height.coerceAtLeast(1).toFloat()
+                            )
+                        },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            onStampPositionChange(
+                                change.position.x / size.width.coerceAtLeast(1).toFloat(),
+                                change.position.y / size.height.coerceAtLeast(1).toFloat()
+                            )
+                        }
+                    )
+                }
+                .pointerInput(review.uri, review.revision) {
+                    detectTapGestures(onTap = { onEditStamp() })
+                }
         )
     }
 }

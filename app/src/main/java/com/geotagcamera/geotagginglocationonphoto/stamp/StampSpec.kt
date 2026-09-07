@@ -107,7 +107,12 @@ fun buildStampSpec(
     }
 
     val placeName = if (addressParts != null) addressParts.place else null
-    val overrideLocation = fields.customLocationText?.takeIf { it.isNotBlank() }
+    val overrideLocation = fields.customLocationText
+        ?.trim()
+        ?.split(Regex("\\s+"))
+        ?.take(100)
+        ?.joinToString(" ")
+        ?.takeIf { it.isNotBlank() }
 
     return StampSpec(
         template = fields.template,

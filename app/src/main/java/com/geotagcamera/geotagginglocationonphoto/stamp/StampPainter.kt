@@ -126,7 +126,7 @@ object StampPainter {
         val countryReserve = countryLayout?.let { it.size.width + px(11f) } ?: 0f
         val dateTimeText = listOfNotNull(spec.dateTimeText, spec.gmtOffsetText).joinToString(" ")
         fun layoutsAt(scale: Float): CardLayouts {
-            val place = spec.placeName?.let { measure(it, placeStyle.copy(fontSize = placeStyle.fontSize * scale), 6, (textColWidth - countryReserve).coerceAtLeast(1f)) }
+            val place = spec.placeName?.let { measure(it, placeStyle.copy(fontSize = placeStyle.fontSize * scale), 100, (textColWidth - countryReserve).coerceAtLeast(1f)) }
             val address = spec.addressLine?.let { measure(it, addressStyle.copy(fontSize = addressStyle.fontSize * scale), 8, textColWidth) }
             val coords = spec.coordinatesText?.let { measure(it, coordsStyle.copy(fontSize = coordsStyle.fontSize * scale), 3, textColWidth) }
             val date = dateTimeText.takeIf { it.isNotBlank() }?.let { measure(it, dateTimeStyle.copy(fontSize = dateTimeStyle.fontSize * scale), 4, textColWidth) }
@@ -137,7 +137,7 @@ object StampPainter {
         val footerHeight = if (spec.hasFooterRow) with(footerLabelStyle.fontSize) { toPx() } * 2.4f else 0f
         var layoutScale = 1f
         var layouts = layoutsAt(layoutScale)
-        while (layoutScale > 0.7f && cardContentHeight(layouts, px3, tileSize, chipRowHeight, footerHeight, spec) > maxCardHeight - pad * 2) {
+        while (layoutScale > 0.18f && cardContentHeight(layouts, px3, tileSize, chipRowHeight, footerHeight, spec) > maxCardHeight - pad * 2) {
             layoutScale -= 0.05f
             layouts = layoutsAt(layoutScale)
         }

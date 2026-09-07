@@ -23,6 +23,7 @@ import com.geotagcamera.geotagginglocationonphoto.ui.capture.CaptureScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.detail.PhotoDetailScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.gallery.GalleryScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.legal.AboutLegalScreen
+import com.geotagcamera.geotagginglocationonphoto.ui.legal.OpenSourceLicensesScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.legal.PrivacyPolicyScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.settings.SettingsScreen
 import com.geotagcamera.geotagginglocationonphoto.ui.upload.UploadPhotoScreen
@@ -47,6 +48,7 @@ private object Routes {
     const val PHOTO_DETAIL = "photoDetail/{photoId}"
     const val VERIFY = "verify?uri={uri}"
     const val ABOUT_LEGAL = "aboutLegal"
+    const val OPEN_SOURCE_LICENSES = "openSourceLicenses"
     const val UPLOAD_PHOTO = "uploadPhoto"
     const val PRIVACY_POLICY = "privacyPolicy"
 
@@ -151,7 +153,13 @@ fun TraceLensApp(shareUri: String? = null, onShareConsumed: () -> Unit = {}) {
                 VerifyScreen(uri = uri, onBack = { navController.popBackStack() })
             }
             composable(Routes.ABOUT_LEGAL) {
-                AboutLegalScreen(onBack = { navController.popBackStack() })
+                AboutLegalScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenLicenses = { navController.navigate(Routes.OPEN_SOURCE_LICENSES) }
+                )
+            }
+            composable(Routes.OPEN_SOURCE_LICENSES) {
+                OpenSourceLicensesScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.UPLOAD_PHOTO) {
                 UploadPhotoScreen(onBack = { navController.popBackStack() })

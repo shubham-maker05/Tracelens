@@ -22,8 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Menu > Privacy Policy. Placeholder copy — replace with your real, reviewed
- * policy before publishing (it must accurately describe what TraceLens
+ * Menu > Privacy Policy (it must accurately describe what TraceLens
  * actually collects: device location for the stamp, gallery photos the user
  * explicitly picks, and nothing sent to a server today). App name + author
  * credit sits at the bottom, as asked.
@@ -47,8 +46,6 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Last updated: replace with your publish date.", style = MaterialTheme.typography.labelMedium)
-
             Section("What we collect") {
                 "TraceLens uses your device's location only to stamp it onto photos you take or upload, and reads a photo from your gallery only when you pick one to upload or verify. None of this is uploaded to our servers — everything happens on your device."
             }
@@ -73,7 +70,6 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                 ) {
                     Text("TraceLens", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     Text("Made by Shubham", style = MaterialTheme.typography.bodySmall)
-                    Text("Built on the open-source GeoTag Camera project (GPLv3).", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

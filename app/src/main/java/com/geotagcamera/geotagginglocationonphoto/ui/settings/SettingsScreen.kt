@@ -133,7 +133,7 @@ fun SettingsScreen(
 
 /** Share-sheet text advertising the app's features — shown via ACTION_SEND (any platform: WhatsApp, Gmail, etc.). */
 private fun shareApp(context: android.content.Context) {
-    val message = "Check out TraceLens — a camera app that auto-stamps every photo with your live location, address, date & time. You can also upload existing photos and geotag them, customise the stamp's look, and verify a photo hasn't been edited since capture. Get it here: https://play.google.com/store/apps"
+    val message = "Check out TraceLens, a camera app that auto-stamps every photo with live location, address, date and time. You can upload existing photos, customise the stamp, and verify a photo has not been edited since capture."
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, message)

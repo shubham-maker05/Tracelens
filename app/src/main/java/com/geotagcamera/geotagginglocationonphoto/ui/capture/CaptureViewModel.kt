@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
@@ -50,7 +51,7 @@ sealed interface CaptureUiState {
     data object Processing : CaptureUiState
     data object AwaitingSignature : CaptureUiState
     /** Post-capture review takeover: the saved, signed photo plus its quotable name/size. */
-    data class Review(val uri: String, val filename: String, val sizeBytes: Long) : CaptureUiState
+    data class Review(val uri: String, val filename: String, val sizeBytes: Long, val revision: Int = 0) : CaptureUiState
     data class Error(val message: String) : CaptureUiState
 }
 
@@ -84,6 +85,19 @@ data class LiveStampData(
  * shutter isn't blocked waiting on GPS a second time.
  */
 class CaptureViewModel(application: Application) : AndroidViewModel(application) {
+    private data class ReviewContext(
+        val uri: String,
+        val sourceFile: File,
+        val fix: LocationFix,
+        val geocode: AddressParts?,
+        val capturedAtEpochMs: Long,
+        val fields: StampFields,
+        val mapTile: Bitmap?,
+        val orgLogo: Bitmap?,
+        val signature: Bitmap?,
+        val weatherChipText: String?
+    )
+
     private val locationProvider = LocationProvider(application)
     private val geocoderRepository = GeocoderRepository(application, AppDatabase.get(application).geoCacheDao())
     private val tileRepository = TileMapRepository(application)
@@ -134,6 +148,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
 
     private var pendingFile: File? = null
     private var pendingSquareCrop: Boolean = false
+    private var reviewContext: ReviewContext? = null
 
     /** Fetch a fresh fix and resolve address / map tile / weather for the live overlay. Safe to call repeatedly. */
     fun refreshLocation() {
@@ -217,7 +232,62 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
 
     /** Leave the review takeover (Retake or Done) back to the live viewfinder. */
     fun dismissReview() {
+        reviewContext?.sourceFile?.delete()
+        reviewContext?.signature?.recycle()
+        reviewContext = null
         _uiState.value = CaptureUiState.Idle
+    }
+
+    fun updateReviewPosition(xFraction: Float, yFraction: Float) {
+        val context = reviewContext ?: return
+        val current = _uiState.value as? CaptureUiState.Review ?: return
+        val x = xFraction.coerceIn(0f, 1f)
+        val y = yFraction.coerceIn(0f, 1f)
+        if (context.fields.positionXFraction == x && context.fields.positionYFraction == y) return
+        updateReviewStamp(context.fields.copy(positionXFraction = x, positionYFraction = y), context, current)
+    }
+
+    fun updateReviewStampFields(fields: StampFields) {
+        val context = reviewContext ?: return
+        val current = _uiState.value as? CaptureUiState.Review ?: return
+        updateReviewStamp(fields, context, current)
+    }
+
+    private fun updateReviewStamp(updatedFields: StampFields, context: ReviewContext, current: CaptureUiState.Review) {
+        reviewContext = context.copy(fields = updatedFields)
+        viewModelScope.launch {
+            stampPreferences.update(updatedFields)
+            withContext(Dispatchers.IO) {
+                val source = BitmapFactory.decodeFile(context.sourceFile.absolutePath) ?: return@withContext
+                val stamped = StampRenderer.stamp(
+                    context = getApplication(),
+                    source = source,
+                    fix = context.fix,
+                    addressParts = context.geocode,
+                    capturedAtEpochMs = context.capturedAtEpochMs,
+                    fields = updatedFields,
+                    mapTile = context.mapTile,
+                    orgLogo = context.orgLogo,
+                    hasSignature = context.signature != null,
+                    weatherChipText = context.weatherChipText
+                )
+                if (stamped !== source) source.recycle()
+                val signed = context.signature?.let { SignatureOverlay.apply(stamped, it) } ?: stamped
+                if (signed !== stamped) stamped.recycle()
+                val temp = File.createTempFile("review_", ".jpg", getApplication<Application>().cacheDir)
+                FileOutputStream(temp).use { out -> signed.compress(Bitmap.CompressFormat.JPEG, 92, out) }
+                signed.recycle()
+                val integrity = PhotoIntegrity.sign(temp)
+                val proof = UserCommentCodec.encode(integrity, context.capturedAtEpochMs)
+                ExifWriter.write(temp, context.fix, context.capturedAtEpochMs, proof)
+                XmpWriter.write(temp, proof)
+                getApplication<Application>().contentResolver.openOutputStream(Uri.parse(context.uri), "wt")?.use { output ->
+                    temp.inputStream().use { input -> input.copyTo(output) }
+                }
+                temp.delete()
+            }
+            _uiState.value = current.copy(revision = current.revision + 1)
+        }
     }
 
     private data class SaveResult(val uri: String, val filename: String, val sizeBytes: Long)
@@ -247,6 +317,8 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                     if (cropped !== upright) upright.recycle()
                     upright = cropped
                 }
+                val reviewSource = File(context.cacheDir, "review_source_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(reviewSource).use { out -> upright.compress(Bitmap.CompressFormat.JPEG, 100, out) }
                 val stamped = StampRenderer.stamp(
                     context = context,
                     source = upright,
@@ -261,6 +333,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                 )
                 if (stamped !== upright) upright.recycle()
 
+                val reviewSignature = signature?.copy(Bitmap.Config.ARGB_8888, false)
                 val signed = signature?.let { SignatureOverlay.apply(stamped, it) } ?: stamped
                 if (signed !== stamped) stamped.recycle()
                 if (signature != null && signature !== signed) signature.recycle()
@@ -284,6 +357,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
                 val uri = MediaStoreImageSaver.save(context, file, filename)
                 file.delete()
                 if (uri == null) null else {
+                    reviewContext = ReviewContext(uri.toString(), reviewSource, fix, geocode, capturedAtEpochMs, fields, snapshot?.mapTile, orgLogo.value, reviewSignature, snapshot?.weather?.chipText)
                     photoDao.insert(
                         PhotoEntity(
                             filePath = uri.toString(),

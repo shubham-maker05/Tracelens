@@ -10,6 +10,5 @@ package com.geotagcamera.geotagginglocationonphoto.ads
 object UnityAdsConfig {
     const val GAME_ID = "800368416"
     const val REWARDED_PLACEMENT_ID = "Rewarded_Android"
-    const val INTERSTITIAL_PLACEMENT_ID = "Interstitial_Android"
     const val TEST_MODE = false
 }

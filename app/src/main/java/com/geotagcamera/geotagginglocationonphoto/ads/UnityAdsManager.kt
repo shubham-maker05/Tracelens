@@ -1,6 +1,7 @@
 package com.geotagcamera.geotagginglocationonphoto.ads
 
 import android.app.Activity
+import android.util.Log
 import com.unity3d.ads.IUnityAdsLoadListener
 import com.unity3d.ads.IUnityAdsShowListener
 import com.unity3d.ads.UnityAds
@@ -27,32 +28,13 @@ import kotlin.coroutines.resume
  */
 class UnityAdsManager(private val activity: Activity) : RewardedAdManager {
 
-    suspend fun showInterstitial(): Boolean = suspendCancellableCoroutine { continuation ->
-        UnityAds.load(UnityAdsConfig.INTERSTITIAL_PLACEMENT_ID, object : IUnityAdsLoadListener {
-            override fun onUnityAdsAdLoaded(placementId: String) {
-                UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-                    override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String?) {
-                        if (continuation.isActive) continuation.resume(false)
-                    }
-                    override fun onUnityAdsShowStart(placementId: String) { }
-                    override fun onUnityAdsShowClick(placementId: String) { }
-                    override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                        if (continuation.isActive) continuation.resume(state == UnityAds.UnityAdsShowCompletionState.COMPLETED)
-                    }
-                })
-            }
-            override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String?) {
-                if (continuation.isActive) continuation.resume(false)
-            }
-        })
-    }
-
     override suspend fun showRewardedAd(): Boolean = suspendCancellableCoroutine { continuation ->
         val load = {
             UnityAds.load(UnityAdsConfig.REWARDED_PLACEMENT_ID, object : IUnityAdsLoadListener {
             override fun onUnityAdsAdLoaded(placementId: String) {
                 UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
                     override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String?) {
+                        Log.e("UnityAds", "Show failed: placement=$placementId error=$error message=$message")
                         if (continuation.isActive) continuation.resume(false)
                     }
                     override fun onUnityAdsShowStart(placementId: String) { /* no-op */ }
@@ -66,6 +48,7 @@ class UnityAdsManager(private val activity: Activity) : RewardedAdManager {
                 })
             }
             override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String?) {
+                Log.e("UnityAds", "Load failed: placement=$placementId error=$error message=$message")
                 if (continuation.isActive) continuation.resume(false)
             }
             })

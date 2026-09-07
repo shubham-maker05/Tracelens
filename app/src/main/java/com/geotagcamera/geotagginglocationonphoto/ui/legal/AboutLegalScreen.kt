@@ -1,9 +1,6 @@
 package com.geotagcamera.geotagginglocationonphoto.ui.legal
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,13 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-private const val SOURCE_URL = "https://github.com/konkomaji/geotagcamera"
 
 /**
  * About & legal (design section 05, screen 10). Copy is written to match the
@@ -42,8 +35,7 @@ private const val SOURCE_URL = "https://github.com/konkomaji/geotagcamera"
  * key signed it, never who was holding the phone.
  */
 @Composable
-fun AboutLegalScreen(onBack: () -> Unit, viewModel: AboutLegalViewModel = viewModel()) {
-    val context = LocalContext.current
+fun AboutLegalScreen(onBack: () -> Unit, onOpenLicenses: () -> Unit, viewModel: AboutLegalViewModel = viewModel()) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -72,20 +64,7 @@ fun AboutLegalScreen(onBack: () -> Unit, viewModel: AboutLegalViewModel = viewMo
             Body("The map thumbnail uses OpenStreetMap data via Stadia Maps; weather uses Open-Meteo. Each is off by default, fetched on demand for the current location only, and never blocks a capture if offline.")
         }
 
-        Section("Licenses") {
-            Body("TraceLens — GPLv3. Built on the open-source GeoTag Camera project (GPLv3).\nPoppins — SIL Open Font License 1.1.\nRoboto Mono — Apache License 2.0.\nMap data © OpenStreetMap contributors (ODbL), tiles © Stadia Maps.\nWeather — Open-Meteo (CC BY 4.0).")
-        }
-
-        Section("Source") {
-            Text(
-                SOURCE_URL,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 13.sp,
-                modifier = Modifier.clickable {
-                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) }
-                }
-            )
-        }
+        TextButton(onClick = onOpenLicenses) { Text("Licenses & credits ›") }
 
         Spacer(Modifier.height(20.dp))
         OutlinedButton(

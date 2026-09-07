@@ -345,7 +345,11 @@ private fun CameraContent(
                     fields = stampFieldsState,
                     adManager = remember { com.geotagcamera.geotagginglocationonphoto.ads.UnityAdsManager(previewEditContext.findActivity()) },
                     onDismiss = { showPreviewEdit = false },
-                    onSave = { updated -> viewModel.updateStampFields(updated); showPreviewEdit = false }
+                    onSave = { updated ->
+                        viewModel.updateStampFields(updated)
+                        viewModel.updateReviewStampFields(updated)
+                        showPreviewEdit = false
+                    }
                 )
             }
 
@@ -360,7 +364,9 @@ private fun CameraContent(
                 ReviewScreen(
                     review = review,
                     onDismiss = { viewModel.dismissReview() },
-                    onShare = { shareImage(context, review.uri) }
+                    onShare = { shareImage(context, review.uri) },
+                    onStampPositionChange = viewModel::updateReviewPosition,
+                    onEditStamp = { showPreviewEdit = true }
                 )
             }
 

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GeoTagCam"
+rootProject.name = "TraceLens"
 include(":app")

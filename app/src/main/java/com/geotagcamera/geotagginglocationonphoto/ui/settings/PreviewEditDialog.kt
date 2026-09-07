@@ -152,10 +152,11 @@ fun PreviewEditDialog(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = customLocation,
-                        onValueChange = { customLocation = it },
+                        onValueChange = { customLocation = it.split(Regex("\\s+")).take(100).joinToString(" ") },
                         label = { Text("Location (blank = automatic)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        minLines = 3,
+                        maxLines = 6
                     )
                 }
             }

@@ -6,9 +6,7 @@
 
 # TraceLens
 
-No ads. No paywall. We know, it's suspicious.
-
-Free, open source, ad free Android camera app that stamps every photo with GPS location, address and timestamp, signs it on-device so anyone can later prove it hasn't been edited, and works fully offline. Built for field surveyors, college students and NGO teams who need to prove where and when a photo was taken, without paying for it or handing over their data.
+Open source Android camera app that stamps every photo with GPS location, address and timestamp, signs it on-device so anyone can later prove it hasn't been edited, and works offline-first. Built for field surveyors, college students and NGO teams who need to prove where and when a photo was taken.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84.svg)](https://developer.android.com)
@@ -19,7 +17,7 @@ Website: https://shubham-maker05.github.io/Tracelens/
 
 ## Why this exists
 
-Most geotagging camera apps on the Play Store make you sit through ads before you can even open the camera, lock basic stamp fields behind a subscription, ask for permissions that have nothing to do with taking a photo, and stop working the moment you lose signal. TraceLens fixes that, in the open, so anyone can read the code and check it for themselves.
+Most geotagging camera apps make you wait before you can use the camera, lock basic stamp fields behind a subscription, ask for permissions that have nothing to do with taking a photo, and stop working the moment you lose signal. TraceLens keeps the implementation open so anyone can read the code and check it for themselves.
 
 ## Features
 
@@ -36,15 +34,14 @@ Most geotagging camera apps on the Play Store make you sit through ads before yo
 
 **Made for your organization**
 - Choose exactly which fields show on the stamp: coordinates, address, timestamp, altitude, accuracy, compass bearing
-- Add your college, company or project name to the stamp, free, no paywall
+- Add your college, company or project name to the stamp
 
 **Trust and verification**
 - Every photo is SHA-256 hashed and signed on-device using a key generated in the Android Keystore, so you can later prove it hasn't been edited since capture
 - Field workers can add a signature directly onto the photo before saving, useful for inspection reports and muster-roll style documentation
 
-**No ads, no tracking, ever**
-- No ad SDKs, no analytics SDKs, no hidden network calls
-- No account, no cloud sync, no server collecting anything, because there is no server
+**Privacy and local processing**
+- No account, no cloud sync, no server collecting anything
 
 ## Tech stack
 
@@ -117,10 +114,6 @@ Issues and pull requests are welcome. If you're planning a larger change, open a
 
 TraceLens is licensed under the [GNU General Public License v3.0](LICENSE). You're free to use, study, modify and redistribute it under the same terms.
 
-## Author
-
-Built by [Konko Maji](https://github.com/konkomaji).
-
 ---
 
 ## ✨ Prism / Glassmorphism theme (custom edit)
@@ -147,7 +140,7 @@ Build as usual: `./gradlew assembleDebug` (APK lands in `app/build/outputs/apk/d
 - **Settings menu** additions: Upload Photo, Preview/Edit stamp look, Dark theme switch, Privacy Policy, Share App, "TraceLens · Made by Shubham" footer.
 - **Upload Photo** (`ui/upload/`) — pick any gallery photo, TraceLens fetches your current GPS fix, reverse-geocodes it, burns the same stamp + tamper-evident signature a live capture gets, and saves to Pictures/TraceLens.
 - **Preview/Edit dialog** (`ui/settings/PreviewEditDialog.kt`) — project name, text size, box size, font, colour, all live-applied to the CARD stamp template (`StampPainter.drawCard`). Also reachable by **tapping the live stamp box on the Capture screen**.
-- **Ad-gated field editing** — "Modify date, time, day & location" is locked behind a "Watch ad" button (`ads/RewardedAdManager.kt` + `RewardedAdGate.kt`). Ships with a **simulated 4-second ad** so the flow works today with zero setup.
+- **Ad-gated field editing** — "Modify date, time, day & location" is unlocked by watching the configured rewarded Unity ad placement (`Rewarded_Android`).
 - **Dark/Light theme toggle** — persisted via DataStore (`ui/theme/ThemePreferences.kt`), applied at the top level in `MainActivity`.
 - Orientation: already correct without new code — the stamp is drawn relative to the final image's own pixel dimensions (not the phone's physical tilt), so a landscape capture already gets a landscape-correct stamp baked in, same as NoteCam. Nothing further needed there.
 
@@ -160,14 +153,14 @@ Build: `./gradlew assembleDebug` → APK in `app/build/outputs/apk/debug/`.
 
 ---
 
-## 🔊 Unity Ads — now wired for real
+## Unity Ads
 
 - Game ID `800368416` and placement `Rewarded_Android` are set in `ads/UnityAdsConfig.kt`.
 - `ads/UnityAdsManager.kt` implements the real load → show → reward-on-COMPLETED flow.
 - SDK initializes once in `TraceLensApp.onCreate()` (Application class — already wired in the manifest).
-- `TEST_MODE = false` in `UnityAdsConfig.kt` for release builds, so production users receive real inventory. Use a separate local test build with Unity test mode when validating ad playback.
+- `TEST_MODE = false` in `UnityAdsConfig.kt`, so the release build requests real inventory.
 - `INTERNET` permission was already present in the manifest — nothing to add there.
-- I can't compile/run Gradle in this environment, so this hasn't been build-verified against the exact `unity-ads:4.12.2` API surface — do a Gradle sync + one real device test of "Watch ad to unlock" before you ship. If any Unity Ads method signature has shifted in a newer/older SDK version, the fix is localized to `UnityAdsManager.kt`.
+- Failure callbacks log the Unity error code, placement ID, and message to Logcat under `UnityAds` and `UnityAdsInit`.
 
 ## 🎨 App icon
 

@@ -36,7 +36,7 @@ class WeatherRepository {
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 5_000
                     readTimeout = 5_000
-                    setRequestProperty("User-Agent", "GeoTagCamera/1.1.0")
+                    setRequestProperty("User-Agent", "TraceLens/1.3.0")
                 }
                 try {
                     if (conn.responseCode != HttpURLConnection.HTTP_OK) return@runCatching null
